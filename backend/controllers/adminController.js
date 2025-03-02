@@ -848,7 +848,7 @@ const editTeacherSubjects = async (req, res) => {
 
 export {
     addEmployee, addStudent,
-    addTeacher, // Add addEmployee
+    addTeacher,
     addTeacherClassSchedule,
     addTeacherEducationLevel,
     addTeacherGradeYearLevel,

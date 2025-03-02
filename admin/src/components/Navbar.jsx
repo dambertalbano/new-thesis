@@ -6,11 +6,15 @@ import { FiMenu, FiX } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { assets } from '../assets/assets';
 import { AdminContext } from '../context/AdminContext';
+import { EmployeeContext } from '../context/EmployeeContext';
+import { StudentContext } from '../context/StudentContext';
 import { TeacherContext } from '../context/TeacherContext';
 
 const Navbar = () => {
   const { dToken, setDToken } = useContext(TeacherContext);
   const { aToken, setAToken } = useContext(AdminContext);
+  const { sToken, setSToken } = useContext(StudentContext);
+  const { eToken, setEToken } = useContext(EmployeeContext);
   const navigate = useNavigate();
   
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -36,10 +40,14 @@ const Navbar = () => {
 
   const handleLogout = () => {
     navigate('/');
-    dToken && setDToken('');
-    dToken && localStorage.removeItem('dToken');
-    aToken && setAToken('');
-    aToken && localStorage.removeItem('aToken');
+    setAToken(null);
+    setDToken(null);
+    setSToken(null);
+    setEToken(null);
+    localStorage.removeItem('sToken');
+    localStorage.removeItem('eToken');
+    localStorage.removeItem('dToken');
+    localStorage.removeItem('aToken');
   };
 
   const handleScan = () => {

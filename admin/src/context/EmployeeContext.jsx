@@ -11,6 +11,7 @@ const EmployeeContextProvider = (props) => {
     const [appointments, setAppointments] = useState([]);
     const [dashData, setDashData] = useState(null);
     const [profileData, setProfileData] = useState(null);
+    const [employees, setEmployees] = useState([]);
 
     // Update token in local storage
     const updateEToken = useCallback((token) => {
@@ -66,6 +67,23 @@ const EmployeeContextProvider = (props) => {
         }
     }, [backendUrl, eToken, setAppointments]);
 
+    // Getting Employee profile data from Database using API
+    const getProfileData = useCallback(async () => {
+        if (!eToken) {
+            toast.error('Not authenticated. Please log in.');
+            return;
+        }
+        try {
+            const { data } = await axios.get(`${backendUrl}/api/employee/profile`, {
+                headers: { Authorization: `Bearer ${eToken}` }
+            });
+            setProfileData(data.profileData);
+        } catch (error) {
+            console.error(error);
+            toast.error(error.response?.data?.message || 'Error fetching profile data.');
+        }
+    }, [backendUrl, eToken, setProfileData]);
+
     // Function to cancel employee appointment using API
     const cancelAppointment = useCallback(async (appointmentId) => {
         if (!eToken) {
@@ -80,7 +98,7 @@ const EmployeeContextProvider = (props) => {
             if (data.success) {
                 toast.success(data.message);
                 getAppointments();
-                getDashData(); // after creating dashboard
+                getDashData();
             } else {
                 toast.error(data.message);
             }
@@ -104,7 +122,7 @@ const EmployeeContextProvider = (props) => {
             if (data.success) {
                 toast.success(data.message);
                 getAppointments();
-                getDashData(); // Later after creating getDashData Function
+                getDashData();
             } else {
                 toast.error(data.message);
             }
@@ -114,22 +132,70 @@ const EmployeeContextProvider = (props) => {
         }
     }, [backendUrl, eToken, getAppointments, getDashData]);
 
-    // Getting Employee profile data from Database using API
-    const getProfileData = useCallback(async () => {
+    const loginEmployee = useCallback(async (email, password) => {
+        try {
+            const { data } = await axios.post(`${backendUrl}/api/employee/login`, { email, password });
+            if (data.success) {
+                updateEToken(data.token);
+                toast.success('Login successful!');
+                return true; // Indicate successful login
+            } else {
+                toast.error(data.message);
+                return false; // Indicate failed login
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            toast.error(error.response?.data?.message || 'Failed to login.');
+            return false; // Indicate failed login
+        }
+    }, [backendUrl, updateEToken]);
+
+    const updateEmployeeProfile = useCallback(async (profileData) => {
         if (!eToken) {
             toast.error('Not authenticated. Please log in.');
             return;
         }
         try {
-            const { data } = await axios.get(`${backendUrl}/api/employee/profile`, {
+            const { data } = await axios.put(`${backendUrl}/api/employee/update-profile`, profileData, {
                 headers: { Authorization: `Bearer ${eToken}` }
             });
-            setProfileData(data.profileData);
+            if (data.success) {
+                toast.success(data.message);
+                getProfileData();
+                return true;
+            } else {
+                toast.error(data.message);
+                return false;
+            }
         } catch (error) {
-            console.error(error);
-            toast.error(error.response?.data?.message || 'Error fetching profile data.');
+            console.error('Profile update error:', error);
+            toast.error(error.response?.data?.message || 'Failed to update profile.');
+            return false;
         }
-    }, [backendUrl, eToken, setProfileData]);
+    }, [backendUrl, eToken, getProfileData]);
+
+    const getEmployeesByEmployee = useCallback(async (employeeId) => {
+        if (!eToken) {
+            toast.error('Not authenticated. Please log in.');
+            return;
+        }
+        try {
+            const { data } = await axios.get(`${backendUrl}/api/employee/employees-by-employee/${employeeId}`, {
+                headers: { Authorization: `Bearer ${eToken}` }
+            });
+            if (data.success) {
+                setEmployees(data.employees);
+                return true;
+            } else {
+                toast.error(data.message);
+                return false;
+            }
+        } catch (error) {
+            console.error('Error getting employees by employee:', error);
+            toast.error(error.response?.data?.message || 'Failed to get employees.');
+            return false;
+        }
+    }, [backendUrl, eToken, setEmployees]);
 
     const value = {
         eToken,
@@ -143,6 +209,10 @@ const EmployeeContextProvider = (props) => {
         getDashData,
         profileData,
         getProfileData,
+        loginEmployee,
+        updateEmployeeProfile,
+        employees,
+        getEmployeesByEmployee,
     };
 
     return (

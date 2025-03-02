@@ -92,7 +92,7 @@ const App = () => {
                 <div className='bg-[#F8F9FD]'>
                     <Navbar onLogout={handleLogout} />
                     <div className='flex items-start'>
-                        
+
                         <Routes>
                             <Route path='/admin-dashboard' element={<Dashboard />} />
                             <Route path='/teacher-dashboard' element={<TeacherDashboard />} />
@@ -122,12 +122,9 @@ const App = () => {
                     </div>
                 </div>
             ) : (
-                <>
-                    <ToastContainer />
-                    <Routes>
-                        <Route path="/" element={<Login />} />
-                    </Routes>
-                </>
+                <Routes>
+                    <Route path="/" element={<Login />} />
+                </Routes>
             )}
         </>
     );

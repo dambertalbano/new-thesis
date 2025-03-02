@@ -1,10 +1,10 @@
 import axios from 'axios';
 import React, { useContext, useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
-import { StudentContext } from '../../context/StudentContext';
+import { EmployeeContext } from '../../context/EmployeeContext';
 
-const StudentProfile = () => {
-    const { sToken, profileData, setProfileData, getProfileData } = useContext(StudentContext);
+const EmployeeProfile = () => {
+    const { eToken, profileData, setProfileData, getProfileData } = useContext(EmployeeContext);
     const backendUrl = import.meta.env.VITE_BACKEND_URL;
     const [isEdit, setIsEdit] = useState(false);
 
@@ -18,7 +18,7 @@ const StudentProfile = () => {
                 level: profileData.level
             };
 
-            const { data } = await axios.post(`${backendUrl}/api/student/update-profile`, updateData, {
+            const { data } = await axios.post(`${backendUrl}/api/employee/update-profile`, updateData, {
                 headers: { Authorization: `Bearer ${sToken}` }
             });
 
@@ -47,7 +47,7 @@ const StudentProfile = () => {
         <div>
             <div className='flex flex-col gap-4 m-5'>
                 <div>
-                    <img className='bg-primary/80 w-full sm:max-w-64 rounded-lg' src={profileData.image} alt="Student Profile" />
+                    <img className='bg-primary/80 w-full sm:max-w-64 rounded-lg' src={profileData.image} alt="Employee Profile" />
                 </div>
 
                 <div className='flex-1 border border-stone-100 rounded-lg p-8 py-7 bg-white'>
@@ -118,4 +118,4 @@ const StudentProfile = () => {
     );
 };
 
-export default StudentProfile;
+export default EmployeeProfile;

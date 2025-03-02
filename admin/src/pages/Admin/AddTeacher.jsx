@@ -13,9 +13,8 @@ const AddTeacher = () => {
     const [password, setPassword] = useState('');
     const [number, setNumber] = useState('');
     const [address, setAddress] = useState('');
-    const [code, setCode] = useState(''); // RFID serial state
-    const [openCardReaderWindow, setOpenCardReaderWindow] = useState(false); // RFID reader modal state
-
+    const [code, setCode] = useState('');
+    const [openCardReaderWindow, setOpenCardReaderWindow] = useState(false);
     const { aToken, addTeacher } = useContext(AdminContext);
 
     const handleOpenRFID = () => {
@@ -28,13 +27,25 @@ const AddTeacher = () => {
 
     const onSubmitHandler = async (event) => {
         event.preventDefault();
-    
+
         if (!docImg) {
             return toast.error('Image Not Selected');
         }
-    
+
+        if (!firstName || !lastName || !email || !password || !number || !address || !code) {
+            return toast.error('Missing Details');
+        }
+
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return toast.error('Please enter a valid email');
+        }
+
+        if (password.length < 8) {
+            return toast.error('Please enter a strong password');
+        }
+
         const formData = new FormData();
-    
+
         formData.append('image', docImg);
         formData.append('firstName', firstName);
         formData.append('middleName', middleName);
@@ -43,10 +54,10 @@ const AddTeacher = () => {
         formData.append('password', password);
         formData.append('number', Number(number));
         formData.append('address', address);
-        formData.append('code', code); // Include RFID serial in the form
-    
-        console.log("Form Data:", Object.fromEntries(formData)); // Log form data
-    
+        formData.append('code', code);
+
+        console.log("Form Data:", Object.fromEntries(formData));
+
         try {
             const success = await addTeacher(formData);
             if (success) {
@@ -58,10 +69,10 @@ const AddTeacher = () => {
                 setEmail('');
                 setAddress('');
                 setNumber('');
-                setCode(''); // Reset RFID serial state
+                setCode('');
             }
         } catch (error) {
-            console.error("Error Response:", error.response); // Log error response
+            console.error("Error Response:", error.response);
             toast.error(error.response?.data?.message || error.message);
             console.log(error);
         }

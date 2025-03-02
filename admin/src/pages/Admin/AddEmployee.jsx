@@ -1,5 +1,4 @@
 import React, { useContext, useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
 import { toast } from 'react-toastify';
 import { RFIDReaderInput } from 'rfid-reader-input';
 import { assets } from '../../assets/assets';
@@ -15,11 +14,10 @@ const AddEmployee = () => {
     const [number, setNumber] = useState('');
     const [address, setAddress] = useState('');
     const [code, setCode] = useState('');
-    const [position, setPosition] = useState(''); // RFID serial state
-    const [openCardReaderWindow, setOpenCardReaderWindow] = useState(false); // RFID reader modal state
+    const [position, setPosition] = useState('');
+    const [openCardReaderWindow, setOpenCardReaderWindow] = useState(false);
 
     const { aToken, addEmployee } = useContext(AdminContext);
-    const navigate = useNavigate(); // Initialize useNavigate
 
     const handleOpenRFID = () => {
         setOpenCardReaderWindow(true);
@@ -33,7 +31,19 @@ const AddEmployee = () => {
         event.preventDefault();
 
         if (!docImg) {
-            return toast.error('Image Not Selected');
+            return toast.error('Image is required');
+        }
+
+        if (!firstName || !lastName || !email || !password || !number || !code || !position || !address) {
+            return toast.error('Missing Details');
+        }
+
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return toast.error('Please enter a valid email');
+        }
+
+        if (password.length < 8) {
+            return toast.error('Please enter a strong password');
         }
 
         const formData = new FormData();
@@ -47,9 +57,9 @@ const AddEmployee = () => {
         formData.append('number', Number(number));
         formData.append('address', address);
         formData.append('position', position);
-        formData.append('code', code); // Include RFID serial in the form
+        formData.append('code', code);
 
-        console.log("Form Data:", Object.fromEntries(formData)); // Log form data
+        console.log("Form Data:", Object.fromEntries(formData));
 
         try {
             const success = await addEmployee(formData);
@@ -63,11 +73,10 @@ const AddEmployee = () => {
                 setAddress('');
                 setNumber('');
                 setPosition('');
-                setCode(''); // Reset RFID serial state
-                navigate('/all-users'); // Redirect to AllUsers page
+                setCode('');
             }
         } catch (error) {
-            console.error("Error Response:", error.response); // Log error response
+            console.error("Error Response:", error.response);
             toast.error(error.response?.data?.message || error.message);
             console.log(error);
         }

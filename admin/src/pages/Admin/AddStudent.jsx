@@ -4,9 +4,8 @@ import { toast } from 'react-toastify';
 import { RFIDReaderInput } from 'rfid-reader-input';
 import { assets } from '../../assets/assets';
 import { AdminContext } from '../../context/AdminContext';
-import gradeOptions from '../../utils/gradeOptions'; // Corrected import
+import gradeOptions from '../../utils/gradeOptions';
 
-// Custom hook for form logic
 const useAddStudentForm = () => {
     const [docImg, setDocImg] = useState(null);
     const [studentNumber, setStudentNumber] = useState('');
@@ -16,7 +15,7 @@ const useAddStudentForm = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [number, setNumber] = useState('');
-    const [educationLevel, setEducationLevel] = useState(''); // Initialize to empty string
+    const [educationLevel, setEducationLevel] = useState('');
     const [gradeYearLevel, setGradeYearLevel] = useState('');
     const [section, setSection] = useState('');
     const [address, setAddress] = useState('');
@@ -27,15 +26,13 @@ const useAddStudentForm = () => {
     const backendUrl = import.meta.env.VITE_BACKEND_URL;
     const { aToken } = useContext(AdminContext);
 
-    // Move educationLevels inside the hook
     const educationLevels = Object.keys(gradeOptions);
 
-    // Initialize educationLevel with the first value from educationLevels, if it exists
     useEffect(() => {
         if (educationLevels.length > 0) {
             setEducationLevel(educationLevels[0]);
         }
-    }, []); // Remove the dependency array
+    }, []);
 
     const resetForm = useCallback(() => {
         setDocImg(null);
@@ -46,7 +43,7 @@ const useAddStudentForm = () => {
         setPassword('');
         setEmail('');
         setAddress('');
-        setEducationLevel(educationLevels[0] || ''); // Reset to first level or empty string
+        setEducationLevel(educationLevels[0] || '');
         setGradeYearLevel('');
         setSection('');
         setNumber('');
@@ -66,6 +63,30 @@ const useAddStudentForm = () => {
 
         if (!docImg) {
             return toast.error('Image Not Selected');
+        }
+
+        if (!studentNumber || !firstName || !lastName || !email || !password || !number || !address || !educationLevel || !gradeYearLevel || !section) {
+            return toast.error('Missing Details');
+        }
+
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return toast.error('Please enter a valid email');
+        }
+
+        if (password.length < 8) {
+            return toast.error('Please enter a strong password');
+        }
+
+        if (!educationLevel) {
+            return toast.error("Please select an Education Level");
+        }
+
+        if (!gradeYearLevel) {
+            return toast.error("Please select a Grade/Year Level");
+        }
+
+        if (!section) {
+            return toast.error("Please select a Section");
         }
 
         const formData = new FormData();
@@ -93,7 +114,7 @@ const useAddStudentForm = () => {
 
             if (data.success) {
                 toast.success(data.message);
-                resetForm(); // Use the resetForm function
+                resetForm();
             } else {
                 toast.error(data.message);
             }
@@ -186,7 +207,7 @@ const AddStudent = () => {
                             value={educationLevel}
                             onChange={(e) => {
                                 setEducationLevel(e.target.value);
-                                setGradeYearLevel(''); // Reset grade when education level changes
+                                setGradeYearLevel('');
                             }}
                             className="border rounded px-3 py-2 w-full"
                         >
