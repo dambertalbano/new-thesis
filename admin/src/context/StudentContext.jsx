@@ -1,134 +1,225 @@
 import axios from 'axios';
-import { createContext, useState } from "react";
+import { createContext, useCallback, useState } from "react";
 import { toast } from 'react-toastify';
 
-
-export const StudentContext = createContext()
+export const StudentContext = createContext();
 
 const StudentContextProvider = (props) => {
+    const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-    const backendUrl = import.meta.env.VITE_BACKEND_URL
+    const [sToken, setSToken] = useState(() => localStorage.getItem('sToken') || null);
+    const [appointments, setAppointments] = useState([]);
+    const [dashData, setDashData] = useState(null);
+    const [profileData, setProfileData] = useState(null);
+    const [students, setStudents] = useState([]);
 
-    const [dToken, setDToken] = useState(localStorage.getItem('dToken') ? localStorage.getItem('dToken') : '')
-    const [appointments, setAppointments] = useState([])
-    const [dashData, setDashData] = useState(false)
-    const [profileData, setProfileData] = useState(false)
-
-    // Getting Student appointment data from Database using API
-    const getAppointments = async () => {
-        try {
-
-            const { data } = await axios.get(backendUrl + '/api/student/appointments', { headers: { dToken } })
-
-            if (data.success) {
-                setAppointments(data.appointments.reverse())
-            } else {
-                toast.error(data.message)
-            }
-
-        } catch (error) {
-            console.log(error)
-            toast.error(error.message)
+    // Update token in local storage
+    const updateSToken = useCallback((token) => {
+        setSToken(token);
+        if (token) {
+            localStorage.setItem('sToken', token);
+        } else {
+            localStorage.removeItem('sToken');
         }
-    }
-
-    // Getting Student profile data from Database using API
-    const getProfileData = async () => {
-        try {
-
-            const { data } = await axios.get(backendUrl + '/api/student/profile', { headers: { dToken } })
-            console.log(data.profileData)
-            setProfileData(data.profileData)
-
-        } catch (error) {
-            console.log(error)
-            toast.error(error.message)
-        }
-    }
-
-    // Function to cancel student appointment using API
-    const cancelAppointment = async (appointmentId) => {
-
-        try {
-
-            const { data } = await axios.post(backendUrl + '/api/student/cancel-appointment', { appointmentId }, { headers: { dToken } })
-
-            if (data.success) {
-                toast.success(data.message)
-                getAppointments()
-                // after creating dashboard
-                getDashData()
-            } else {
-                toast.error(data.message)
-            }
-
-        } catch (error) {
-            toast.error(error.message)
-            console.log(error)
-        }
-
-    }
-
-    // Function to Mark appointment completed using API
-    const completeAppointment = async (appointmentId) => {
-
-        try {
-
-            const { data } = await axios.post(backendUrl + '/api/student/complete-appointment', { appointmentId }, { headers: { dToken } })
-
-            if (data.success) {
-                toast.success(data.message)
-                getAppointments()
-                // Later after creating getDashData Function
-                getDashData()
-            } else {
-                toast.error(data.message)
-            }
-
-        } catch (error) {
-            toast.error(error.message)
-            console.log(error)
-        }
-
-    }
+    }, [setSToken]);
 
     // Getting Student dashboard data using API
-    const getDashData = async () => {
+    const getDashData = useCallback(async () => {
+        if (!sToken) {
+            toast.error('Not authenticated. Please log in.');
+            return;
+        }
         try {
-
-            const { data } = await axios.get(backendUrl + '/api/student/dashboard', { headers: { dToken } })
+            const { data } = await axios.get(`${backendUrl}/api/student/dashboard`, {
+                headers: { Authorization: `Bearer ${sToken}` }
+            });
 
             if (data.success) {
-                setDashData(data.dashData)
+                setDashData(data.dashData);
             } else {
-                toast.error(data.message)
+                toast.error(data.message);
             }
-
         } catch (error) {
-            console.log(error)
-            toast.error(error.message)
+            console.error(error);
+            toast.error(error.response?.data?.message || 'Error fetching dashboard data.');
         }
+    }, [backendUrl, sToken, setDashData]);
 
-    }
+    // Getting Student appointment data from Database using API
+    const getAppointments = useCallback(async () => {
+        if (!sToken) {
+            toast.error('Not authenticated. Please log in.');
+            return;
+        }
+        try {
+            const { data } = await axios.get(`${backendUrl}/api/student/appointments`, {
+                headers: { Authorization: `Bearer ${sToken}` }
+            });
+
+            if (data.success) {
+                setAppointments(data.appointments.reverse());
+            } else {
+                toast.error(data.message);
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error(error.response?.data?.message || 'Error fetching appointments.');
+        }
+    }, [backendUrl, sToken, setAppointments]);
+
+    // Getting Student profile data from Database using API
+    const getProfileData = useCallback(async () => {
+        if (!sToken) {
+            toast.error('Not authenticated. Please log in.');
+            return;
+        }
+        try {
+            const { data } = await axios.get(`${backendUrl}/api/student/profile`, {
+                headers: { Authorization: `Bearer ${sToken}` }
+            });
+            setProfileData(data.profileData);
+        } catch (error) {
+            console.error(error);
+            toast.error(error.response?.data?.message || 'Error fetching profile data.');
+        }
+    }, [backendUrl, sToken, setProfileData]);
+
+    // Function to cancel student appointment using API
+    const cancelAppointment = useCallback(async (appointmentId) => {
+        if (!sToken) {
+            toast.error('Not authenticated. Please log in.');
+            return;
+        }
+        try {
+            const { data } = await axios.post(`${backendUrl}/api/student/cancel-appointment`, { appointmentId }, {
+                headers: { Authorization: `Bearer ${sToken}` }
+            });
+
+            if (data.success) {
+                toast.success(data.message);
+                getAppointments();
+                getDashData();
+            } else {
+                toast.error(data.message);
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error(error.response?.data?.message || 'Error cancelling appointment.');
+        }
+    }, [backendUrl, sToken, getAppointments, getDashData]);
+
+    // Function to Mark appointment completed using API
+    const completeAppointment = useCallback(async (appointmentId) => {
+        if (!sToken) {
+            toast.error('Not authenticated. Please log in.');
+            return;
+        }
+        try {
+            const { data } = await axios.post(`${backendUrl}/api/student/complete-appointment`, { appointmentId }, {
+                headers: { Authorization: `Bearer ${sToken}` }
+            });
+
+            if (data.success) {
+                toast.success(data.message);
+                getAppointments();
+                getDashData();
+            } else {
+                toast.error(data.message);
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error(error.response?.data?.message || 'Error completing appointment.');
+        }
+    }, [backendUrl, sToken, getAppointments, getDashData]);
+
+    const loginStudent = useCallback(async (email, password) => {
+        try {
+            const { data } = await axios.post(`${backendUrl}/api/student/login`, { email, password });
+            if (data.success) {
+                updateSToken(data.token);
+                toast.success('Login successful!');
+                return true; // Indicate successful login
+            } else {
+                toast.error(data.message);
+                return false; // Indicate failed login
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            toast.error(error.response?.data?.message || 'Failed to login.');
+            return false; // Indicate failed login
+        }
+    }, [backendUrl, updateSToken]);
+
+    const updateStudentProfile = useCallback(async (profileData) => {
+        if (!sToken) {
+            toast.error('Not authenticated. Please log in.');
+            return;
+        }
+        try {
+            const { data } = await axios.put(`${backendUrl}/api/student/update-profile`, profileData, {
+                headers: { Authorization: `Bearer ${sToken}` }
+            });
+            if (data.success) {
+                toast.success(data.message);
+                getProfileData();
+                return true;
+            } else {
+                toast.error(data.message);
+                return false;
+            }
+        } catch (error) {
+            console.error('Profile update error:', error);
+            toast.error(error.response?.data?.message || 'Failed to update profile.');
+            return false;
+        }
+    }, [backendUrl, sToken, getProfileData]);
+
+    const getStudentsByStudent = useCallback(async (studentId) => {
+        if (!sToken) {
+            toast.error('Not authenticated. Please log in.');
+            return;
+        }
+        try {
+            const { data } = await axios.get(`${backendUrl}/api/student/students-by-student/${studentId}`, {
+                headers: { Authorization: `Bearer ${sToken}` }
+            });
+            if (data.success) {
+                setStudents(data.students);
+                return true;
+            } else {
+                toast.error(data.message);
+                return false;
+            }
+        } catch (error) {
+            console.error('Error getting students by student:', error);
+            toast.error(error.response?.data?.message || 'Failed to get students.');
+            return false;
+        }
+    }, [backendUrl, sToken, setStudents]);
 
     const value = {
-        dToken, setDToken, backendUrl,
+        sToken,
+        setSToken: updateSToken,
+        backendUrl,
         appointments,
         getAppointments,
         cancelAppointment,
         completeAppointment,
-        dashData, getDashData,
-        profileData, setProfileData,
+        dashData,
+        getDashData,
+        profileData,
         getProfileData,
-    }
+        loginStudent,
+        updateStudentProfile,
+        students,
+        getStudentsByStudent,
+    };
 
     return (
         <StudentContext.Provider value={value}>
             {props.children}
         </StudentContext.Provider>
-    )
+    );
+};
 
-
-}
-
-export default StudentContextProvider
+export default StudentContextProvider;

@@ -1,13 +1,13 @@
 import jwt from 'jsonwebtoken'
 
-// administrator authentication middleware
-const authAdministrator = async (req, res, next) => {
-    const { btoken } = req.headers
-    if (!btoken) {
+// employee authentication middleware
+const authEmployee = async (req, res, next) => {
+    const { dtoken } = req.headers
+    if (!dtoken) {
         return res.json({ success: false, message: 'Not Authorized Login Again' })
     }
     try {
-        const token_decode = jwt.verify(btoken, process.env.JWT_SECRET)
+        const token_decode = jwt.verify(dtoken, process.env.JWT_SECRET)
         req.body.docId = token_decode.id
         next()
     } catch (error) {
@@ -16,4 +16,4 @@ const authAdministrator = async (req, res, next) => {
     }
 }
 
-export default authAdministrator;
+export default authEmployee;

@@ -1,90 +1,250 @@
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
+import blankImage from "../../assets/blank-image.webp";
 import { AdminContext } from "../../context/AdminContext";
 
 const RFID_Scan = () => {
-    const { getUserByCode } = useContext(AdminContext);
-    const [code, setCode] = useState('');
+    const { getUserByCode, adminSignIn, adminSignOut } = useContext(AdminContext);
+    const [scannedCode, setScannedCode] = useState('');
     const [userInfo, setUserInfo] = useState(null);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [lastScannedTimes, setLastScannedTimes] = useState({}); // Store last scanned time per user
 
-    const handleScan = async () => {
-        if (!code) {
+    useEffect(() => {
+        const handleKeyDown = (event) => {
+            if (event.key === 'Enter') {
+                if (scannedCode.trim() !== '') {
+                    handleScan(scannedCode.trim());
+                }
+                // Clear the scannedCode after processing the Enter key
+                setScannedCode('');
+            } else {
+                setScannedCode((prevCode) => prevCode + event.key);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [getUserByCode, scannedCode]);
+
+    const handleScan = async (code) => {
+        if (!code.trim()) {
             setError('Please scan a valid code');
             return;
         }
 
         setLoading(true);
         setError('');
-        setUserInfo(null);
 
         try {
             console.log(`Scanning RFID code: ${code}`);
-            const user = await getUserByCode(code);
-            console.log('User fetched:', user);
-            if (user) {
-                setUserInfo(user);
+            const response = await getUserByCode(code);
+            console.log('User fetched:', response);
+
+            if (response && response.success && response.user) {
+                setUserInfo(response.user);
+                console.log('User info set:', response.user);
+
+                const user = response.user;
+
+                // Prevent double scanning within the same minute for this user
+                const now = new Date();
+                if (lastScannedTimes[code] && now.getTime() - lastScannedTimes[code].getTime() < 60000) {
+                    setError('Please wait at least one minute before scanning again.');
+                    setLoading(false);
+                    return;
+                }
+
+                // Check if sign-in and sign-out already recorded for *today*
+                const today = new Date();
+                const signInDate = user.signInTime ? new Date(user.signInTime) : null;
+                const signOutDate = user.signOutTime ? new Date(user.signOutTime) : null;
+
+                const sameDaySignIn = signInDate && (
+                    signInDate.getFullYear() === today.getFullYear() &&
+                    signInDate.getMonth() === today.getMonth() &&
+                    signInDate.getDate() === today.getDate()
+                );
+
+                const sameDaySignOut = signOutDate && (
+                    signOutDate.getFullYear() === today.getFullYear() &&
+                    signOutDate.getMonth() === today.getMonth() &&
+                    signOutDate.getDate() === today.getDate()
+                );
+
+                if (sameDaySignIn && sameDaySignOut && signOutDate > signInDate) {
+                    setError('Sign-in and sign-out already recorded for today.');
+                    setLoading(false);
+                    return;
+                }
+
+                // Determine whether to sign in or sign out
+                if (!user.signInTime || (user.signOutTime && user.signOutTime > user.signInTime)) {
+                    await handleSignIn(code);
+                } else if (user.signInTime && (!user.signOutTime || user.signOutTime < user.signInTime)) {
+                    await handleSignOut(code);
+                } else {
+                    setError('Invalid state. Please contact support.');
+                    setLoading(false);
+                    return;
+                }
+
+                // Update last scanned time for this user
+                setLastScannedTimes(prevTimes => ({ ...prevTimes, [code]: now }));
             } else {
                 setError('No user found with this code');
+                setUserInfo(null);
             }
         } catch (err) {
             setError('An error occurred while fetching user data.');
             console.error('Error fetching user data:', err);
+            setUserInfo(null);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleClear = () => {
-        setCode('');
-        setUserInfo(null);
-        setError('');
+    const formatName = (user) => {
+        if (!user) return 'N/A';
+        const lastName = user.lastName || '';
+        const firstName = user.firstName || '';
+        const middleName = user.middleName ? `${user.middleName.charAt(0)}.` : '';
+        return `${lastName}, ${firstName} ${middleName}`.trim();
+    };
+
+    const handleSignIn = async (code) => {
+        try {
+            await adminSignIn(code);
+            // Refresh user info after sign-in
+            const response = await getUserByCode(code);
+            if (response && response.success && response.user) {
+                setUserInfo(response.user);
+            } else {
+                setError('Failed to refresh user data after sign-in.');
+            }
+        } catch (error) {
+            setError('Failed to sign in.');
+            console.error(error);
+        }
+    };
+
+    const handleSignOut = async (code) => {
+        try {
+            await adminSignOut(code);
+            // Refresh user info after sign-out
+            const response = await getUserByCode(code);
+            if (response && response.success && response.user) {
+                setUserInfo(response.user);
+            } else {
+                setError('Failed to refresh user data after sign-out.');
+            }
+        } catch (error) {
+            setError('Failed to sign out.');
+            console.error(error);
+        }
     };
 
     return (
-        <div className="p-5">
-            <h2 className="text-xl font-bold mb-4">RFID User Information</h2>
-            <div className="flex items-center">
-                <input
-                    type="text"
-                    placeholder="Scan RFID Code"
-                    value={code}
-                    onChange={(e) => setCode(e.target.value)}
-                    className="border rounded px-3 py-2 mr-2"
-                    aria-label="RFID Code"
+        <div className="p-5 max-w-9xl mx-auto border rounded shadow bg-white h-screen">
+            <h2 className="text-xl font-bold mb-4 text-center">User Information</h2>
+
+            {loading ? (
+                <p className="text-blue-500 text-center">⏳ Scanning...</p>
+            ) : error ? (
+                <>
+                    <p className="text-red-500 text-center">{error}</p>
+                    {userInfo ? (
+                        userInfo.position !== 'Teacher' ? (
+                            <UserInfoDisplay userInfo={userInfo} formatName={formatName} />
+                        ) : null
+                    ) : (
+                        <BlankUserInfo />
+                    )}
+                </>
+            ) : userInfo ? (
+                userInfo.position !== 'Teacher' ? (
+                    <UserInfoDisplay userInfo={userInfo} formatName={formatName} />
+                ) : null
+            ) : (
+                <BlankUserInfo />
+            )}
+        </div>
+    );
+};
+
+const UserInfoDisplay = ({ userInfo, formatName }) => {
+    // Function to format the date and time
+    const formatDateTime = (dateTimeString) => {
+        if (!dateTimeString) return 'N/A';
+        try {
+            const date = new Date(dateTimeString);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: 'numeric',
+                second: 'numeric',
+            });
+        } catch (error) {
+            console.error("Error formatting date:", error);
+            return 'Invalid Date';
+        }
+    };
+
+    return (
+        <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 border rounded shadow bg-white">
+            <div className="flex flex-col items-center">
+                <img
+                    src={userInfo.image}
+                    alt="User"
+                    className="w-32 h-32 rounded-full mb-4 max-w-full h-auto"
                 />
-                <button
-                    onClick={handleScan}
-                    className="bg-blue-500 text-white rounded px-4 py-2 mr-2"
-                    disabled={loading}
-                    aria-busy={loading}
-                >
-                    {loading ? 'Scanning...' : 'Scan'}
-                </button>
-                <button
-                    onClick={handleClear}
-                    className="bg-gray-500 text-white rounded px-4 py-2"
-                >
-                    Clear
-                </button>
             </div>
-            <div className="mt-5">
-                {userInfo ? (
-                    <div className="p-4 border rounded shadow">
-                        <p><strong>Name:</strong> {userInfo.name}</p>
-                        <p><strong>Email:</strong> {userInfo.email}</p>
-                        <p><strong>Number:</strong> {userInfo.phone}</p>
-                        <p><strong>Role:</strong> {userInfo.position}</p>
-                        {userInfo.address && (
-                            <p><strong>Address:</strong> {userInfo.address.line1}, {userInfo.address.line2}</p>
-                        )}
-                        <p><strong>Type:</strong> {userInfo.type}</p>
-                    </div>
-                ) : error ? (
-                    <p className="text-red-500">{error}</p>
-                ) : (
-                    <p className="text-gray-500">Scan an RFID to view user information.</p>
-                )}
+            <div className="flex flex-col gap-y-2 break-words">
+                <p><strong>Name:</strong> {formatName(userInfo)}</p>
+                <p><strong>Student Number:</strong> {userInfo.studentNumber}</p>
+                <p><strong>Email:</strong> {userInfo.email}</p>
+                <p><strong>Address:</strong> {userInfo.address}</p>
+                {userInfo.position && <p><strong>Position:</strong> {userInfo.position}</p>}
+                {userInfo.educationLevel && <p><strong>Education Level:</strong> {userInfo.educationLevel}</p>}
+                {userInfo.gradeYearLevel && <p><strong>Grade/Year Level:</strong> {userInfo.gradeYearLevel}</p>}
+                {userInfo.section && <p><strong>Section:</strong> {userInfo.section}</p>}
+            </div>
+            <div className="col-span-1 sm:col-span-2 flex justify-between border-t pt-2">
+                <p className="text-green-500"><strong>Sign In Time:</strong> {formatDateTime(userInfo.signInTime)}</p>
+                <p className="text-red-500"><strong>Sign Out Time:</strong> {formatDateTime(userInfo.signOutTime)}</p>
+            </div>
+        </div>
+    );
+};
+
+const BlankUserInfo = () => {
+    const formatName = () => {
+        return 'N/A';
+    };
+    return (
+        <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 border rounded shadow bg-white">
+            <div className="flex flex-col items-center">
+                <img
+                    src={blankImage}
+                    alt="User"
+                    className="w-40 h-32 rounded-full mb-4 max-w-full h-auto"
+                    style={{ backgroundColor: '#ddd' }}
+                />
+            </div>
+            <div className="flex flex-col gap-y-2 break-words">
+                <p><strong>Name:</strong> {formatName()}</p>
+                <p><strong>Student Number:</strong> N/A</p>
+                <p><strong>Email:</strong> N/A</p>
+                <p><strong>Address:</strong> N/A</p>
+            </div>
+            <div className="col-span-1 sm:col-span-2 flex justify-between border-t pt-2">
+                <p className="text-green-500"><strong>Sign In Time:</strong> N/A</p>
+                <p className="text-red-500"><strong>Sign Out Time:</strong> N/A</p>
             </div>
         </div>
     );

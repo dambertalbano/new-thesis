@@ -1,74 +1,66 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FaEdit, FaSearch, FaTrash } from 'react-icons/fa';
 import ReactPaginate from 'react-paginate';
-import { AdminContext } from '../../context/AdminContext';
+import { toast } from 'react-toastify';
+import { useAdminContext } from '../../context/AdminContext';
 
-const TeachersList = () => {
-    const { teachers, aToken, getAllTeachers, updateTeacher, deleteTeacher } = useContext(AdminContext);
-
-    const [isEditing, setIsEditing] = useState(false);
-    const [currentTeacher, setCurrentTeacher] = useState(null);
+const EmployeeList = () => {
+    const { employees, getAllEmployees, updateEmployee, deleteEmployee } = useAdminContext();
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(0);
-    const teachersPerPage = 10;
+    const [isEditing, setIsEditing] = useState(false);
+    const [currentEmployee, setCurrentEmployee] = useState(null);
+
+    const employeesPerPage = 10;
 
     useEffect(() => {
-        if (aToken) {
-            getAllTeachers();
-        }
-    }, [aToken, getAllTeachers]);
+        getAllEmployees();
+    }, [getAllEmployees]);
 
-    const handleEditClick = (teacher) => {
-        if (!teacher._id) {
-            console.error("Teacher ID is missing for the selected teacher.");
-            return;
-        }
-        setCurrentTeacher(teacher);
+    const filteredEmployees = employees?.filter(employee => {
+        const fullName = `${employee?.firstName} ${employee?.lastName}`.toLowerCase();
+        return fullName.includes(searchTerm.toLowerCase()) ||
+            employee?.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    });
+
+    const handleSearch = (e) => {
+        setSearchTerm(e.target.value);
+        setCurrentPage(0);
+    };
+
+    const handleEditClick = (employee) => {
+        setCurrentEmployee(employee);
         setIsEditing(true);
     };
 
-    const handleSave = async () => {
-        if (!currentTeacher._id) {
-            console.error("Teacher ID is missing for the current teacher.");
-            return;
-        }
-        console.log("Saving teacher with ID:", currentTeacher._id);
-        const success = await updateTeacher(currentTeacher);
-        if (success) {
-            setIsEditing(false);
-            setCurrentTeacher(null);
+    const handleDelete = async (employeeId) => {
+        try {
+            await deleteEmployee(employeeId);
+            toast.success("Employee deleted successfully!");
+        } catch (error) {
+            console.error("Error deleting employee:", error);
+            toast.error("Failed to delete employee.");
         }
     };
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
-        setCurrentTeacher((prev) => ({
-            ...prev,
-            [name]: value,
-        }));
+        setCurrentEmployee(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
 
-    const handleDelete = async (teacherId) => {
+    const handleSave = async () => {
         try {
-            await deleteTeacher(teacherId);
-            getAllTeachers();
+            await updateEmployee(currentEmployee);
+            toast.success("Employee updated successfully!");
+            setIsEditing(false);
         } catch (error) {
-            console.error("Failed to delete teacher:", error.message);
+            console.error("Error updating employee:", error);
+            toast.error("Failed to update employee.");
         }
     };
 
-    const handleSearch = (e) => {
-        setSearchTerm(e.target.value);
-    };
-
-    const filteredTeachers = teachers?.filter((teacher) =>
-        `${teacher?.firstName} ${teacher?.middleName} ${teacher?.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        teacher?.email?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    const pageCount = Math.ceil((filteredTeachers?.length || 0) / teachersPerPage);
-    const offset = currentPage * teachersPerPage;
-    const currentTeachers = filteredTeachers?.slice(offset, offset + teachersPerPage) || [];
+    const pageCount = Math.ceil((filteredEmployees?.length || 0) / employeesPerPage);
+    const offset = currentPage * employeesPerPage;
+    const currentEmployees = filteredEmployees?.slice(offset, offset + employeesPerPage) || [];
 
     const handlePageClick = ({ selected }) => {
         setCurrentPage(selected);
@@ -76,7 +68,7 @@ const TeachersList = () => {
 
     return (
         <div className="flex flex-col h-full w-full p-5">
-            <h1 className="text-xl font-bold mb-4">TEACHER LIST</h1>
+            <h1 className="text-xl font-bold mb-4">EMPLOYEE LIST</h1>
 
             <div className="flex justify-between items-center mb-4">
                 <div className="relative">
@@ -100,25 +92,25 @@ const TeachersList = () => {
                             <th className="px-4 py-2">Email</th>
                             <th className="px-4 py-2">Number</th>
                             <th className="px-4 py-2">Address</th>
-                            <th className="px-4 py-2">Subjects</th>
+                            <th className="px-4 py-2">Position</th>
                             <th className="px-4 py-2 text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {currentTeachers?.map((item, index) => (
+                        {currentEmployees?.map((item, index) => (
                             <tr key={index} className="border-b hover:bg-gray-100 text-center">
                                 <td className="px-4 py-2">
                                     <img
                                         className="w-16 h-16 object-cover rounded-full mx-auto"
                                         src={item?.image ?? '/default-image.png'}
-                                        alt="Teacher"
+                                        alt="Employee"
                                     />
                                 </td>
                                 <td className="px-4 py-2">{`${item?.firstName ?? ''} ${item?.middleName ? item.middleName.charAt(0) + '.' : ''} ${item?.lastName ?? ''}`}</td>
                                 <td className="px-4 py-2">{item?.email ?? 'No Email'}</td>
                                 <td className="px-4 py-2">{item?.number ?? 'No Number'}</td>
                                 <td className="px-4 py-2">{item?.address ?? 'No Address'}</td>
-                                <td className="px-4 py-2">{item?.subjects?.join(', ') ?? 'No Subjects'}</td>
+                                <td className="px-4 py-2">{item?.position ?? 'No Position'}</td>
                                 <td className="px-4 py-2 flex justify-center space-x-2">
                                     <button
                                         className="px-4 py-2 bg-blue-500 text-white rounded flex items-center"
@@ -153,16 +145,16 @@ const TeachersList = () => {
                 activeClassName={'font-bold'}
             />
 
-            {isEditing && currentTeacher && (
+            {isEditing && currentEmployee && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
                     <div className="bg-white p-6 rounded shadow-lg w-1/3">
-                        <h2 className="text-2xl font-bold mb-4">Edit Teacher</h2>
+                        <h2 className="text-2xl font-bold mb-4">Edit Employee</h2>
                         <div className="mt-4">
                             <label className="block text-sm font-medium text-gray-700">First Name</label>
                             <input
                                 className="border w-full p-2 rounded mt-1"
                                 name="firstName"
-                                value={currentTeacher?.firstName || ''}
+                                value={currentEmployee?.firstName || ''}
                                 onChange={handleChange}
                             />
                         </div>
@@ -171,7 +163,7 @@ const TeachersList = () => {
                             <input
                                 className="border w-full p-2 rounded mt-1"
                                 name="middleName"
-                                value={currentTeacher?.middleName || ''}
+                                value={currentEmployee?.middleName || ''}
                                 onChange={handleChange}
                             />
                         </div>
@@ -180,7 +172,7 @@ const TeachersList = () => {
                             <input
                                 className="border w-full p-2 rounded mt-1"
                                 name="lastName"
-                                value={currentTeacher?.lastName || ''}
+                                value={currentEmployee?.lastName || ''}
                                 onChange={handleChange}
                             />
                         </div>
@@ -189,7 +181,7 @@ const TeachersList = () => {
                             <input
                                 className="border w-full p-2 rounded mt-1"
                                 name="email"
-                                value={currentTeacher?.email || ''}
+                                value={currentEmployee?.email || ''}
                                 onChange={handleChange}
                             />
                         </div>
@@ -198,7 +190,7 @@ const TeachersList = () => {
                             <input
                                 className="border w-full p-2 rounded mt-1"
                                 name="number"
-                                value={currentTeacher?.number || ''}
+                                value={currentEmployee?.number || ''}
                                 onChange={handleChange}
                             />
                         </div>
@@ -207,23 +199,17 @@ const TeachersList = () => {
                             <input
                                 className="border w-full p-2 rounded mt-1"
                                 name="address"
-                                value={currentTeacher?.address || ''}
+                                value={currentEmployee?.address || ''}
                                 onChange={handleChange}
                             />
                         </div>
                         <div className="mt-4">
-                            <label className="block text-sm font-medium text-gray-700">Subjects (comma-separated)</label>
+                            <label className="block text-sm font-medium text-gray-700">Position</label>
                             <input
                                 className="border w-full p-2 rounded mt-1"
-                                name="subjects"
-                                value={currentTeacher?.subjects?.join(', ') || ''}
-                                onChange={(e) => {
-                                    const value = e.target.value;
-                                    setCurrentTeacher(prev => ({
-                                        ...prev,
-                                        subjects: value.split(',').map(s => s.trim())
-                                    }));
-                                }}
+                                name="position"
+                                value={currentEmployee?.position || ''}
+                                onChange={handleChange}
                             />
                         </div>
                         <div className="mt-4 flex justify-end space-x-2">
@@ -247,4 +233,4 @@ const TeachersList = () => {
     );
 };
 
-export default TeachersList;
+export default EmployeeList;

@@ -1,5 +1,5 @@
 import axios from "axios";
-import { createContext, useContext, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 
 export const AdminContext = createContext();
@@ -9,40 +9,148 @@ const AdminContextProvider = (props) => {
 
     const initialAToken = localStorage.getItem('aToken') || '';
     const [aToken, setAToken] = useState(initialAToken);
+    const [employees, setEmployees] = useState([]);
     const [students, setStudents] = useState([]);
-    const [administrators, setAdministrators] = useState([]);
     const [teachers, setTeachers] = useState([]);
-    const [utilitys, setUtilitys] = useState([]);
-    const [dashData, setDashData] = useState(false);
+    const [dashData, setDashData] = useState(null);
 
-    // Function to fetch user by RFID code
-    const getUserByCode = async (code) => {
-        try {
-            const studentResponse = await axios.get(`${backendUrl}/api/students/${code}`, { headers: { aToken } });
-            if (studentResponse.data) return { ...studentResponse.data, type: 'student' };
-
-            const teacherResponse = await axios.get(`${backendUrl}/api/teachers/${code}`, { headers: { aToken } });
-            if (teacherResponse.data) return { ...teacherResponse.data, type: 'teacher' };
-
-            const administratorResponse = await axios.get(`${backendUrl}/api/administrators/${code}`, { headers: { aToken } });
-            if (administratorResponse.data) return { ...administratorResponse.data, type: 'administrator' };
-
-            const utilityResponse = await axios.get(`${backendUrl}/api/utilitys/${code}`, { headers: { aToken } });
-            if (utilityResponse.data) return { ...utilityResponse.data, type: 'utility' };
-
-            return null;
-        } catch (error) {
-            console.error('Error fetching user by code:', error);
-            toast.error('Error fetching user by code');
-            throw error;
+    useEffect(() => {
+        const storedAToken = localStorage.getItem('aToken');
+        if (storedAToken) {
+            setAToken(storedAToken);
         }
-    };
+    }, [setAToken]);
 
-    // Function to fetch all students
-    const getAllStudents = async () => {
+    const updateAToken = useCallback((token) => {
+        setAToken(token);
+        if (token) {
+            localStorage.setItem('aToken', token); // Synchronous persistence
+        } else {
+            localStorage.removeItem('aToken'); // Synchronous removal
+        }
+    }, [setAToken]);
+
+    const handleApiError = useCallback((error, message = "An error occurred") => {
+        console.error(message + ":", error);
+        toast.error(message + ": " + error.message);
+    }, []);
+
+    const getAllEmployees = useCallback(async () => { // Move getAllEmployees before its usage
+        try {
+            const { data } = await axios.get(`${backendUrl}/api/admin/all-employees`, {
+                headers: { Authorization: `Bearer ${aToken}` }
+            });
+            if (data.success) {
+                setEmployees(data.employees);
+            } else {
+                toast.error(data.message);
+            }
+        } catch (error) {
+            handleApiError(error, 'Error fetching all employees');
+        }
+    }, [aToken, backendUrl, handleApiError]);
+
+    const updateEmployee = useCallback(async (employee) => {
+        const url = `${backendUrl}/api/admin/employees/${employee._id}`;
+        try {
+            const response = await axios.put(url, employee, {
+                headers: { Authorization: `Bearer ${aToken}` },
+            });
+
+            if (response.data.success) {
+                getAllEmployees(); // Keep the getAllEmployees() call here
+                return true;
+            } else {
+                toast.error(response.data.message || "Failed to update employee");
+            }
+        } catch (error) {
+            handleApiError(error, 'Error updating employee');
+        }
+    }, [aToken, backendUrl, getAllEmployees, handleApiError]);
+
+    const deleteEmployee = useCallback(async (employeeId) => {
+        try {
+            const response = await axios.delete(`${backendUrl}/api/admin/employees/${employeeId}`, {
+                headers: { Authorization: `Bearer ${aToken}` },
+            });
+
+            if (response.data.success) {
+                toast.success("Employee deleted successfully");
+                getAllEmployees();
+                return true;
+            } else {
+                toast.error(response.data.message || "Failed to delete employee");
+            }
+        } catch (error) {
+            handleApiError(error, 'Error deleting employee');
+        }
+    }, [aToken, backendUrl, getAllEmployees, handleApiError]);
+
+    const addEmployee = useCallback(async (employeeData) => {
+        try {
+            const response = await axios.post(`${backendUrl}/api/admin/add-employee`, employeeData, {
+                headers: {
+                    Authorization: `Bearer ${aToken}`,
+                    'Content-Type': 'multipart/form-data'
+                },
+            });
+
+            if (response.data.success) {
+                toast.success("Employee added successfully");
+                getAllEmployees();
+                return true;
+            } else {
+                toast.error(response.data.message || "Failed to add employee");
+                return false;
+            }
+        } catch (error) {
+            handleApiError(error, 'Error adding employee');
+            return false;
+        }
+    }, [aToken, backendUrl, getAllEmployees, handleApiError]);
+
+    const getUserByCode = useCallback(async (code) => {
+        try {
+            console.log(`Attempting to fetch user with code: ${code}`);
+
+            const response = await axios.get(`${backendUrl}/api/admin/user/code/${code}`, {
+                headers: { Authorization: `Bearer ${aToken}` }
+            });
+
+            if (response.data && response.data.success && response.data.user) {
+                return { ...response.data, type: 'student' };
+            }
+
+            toast.error('User not found');
+            return null;
+
+        } catch (error) {
+            handleApiError(error, 'Error fetching user by code');
+            return null;
+        }
+    }, [aToken, backendUrl, handleApiError]);
+
+    const getStudentByCode = useCallback(async (code) => {
+        try {
+            const { data } = await axios.get(`${backendUrl}/api/admin/student/code/${code}`, {
+                headers: { Authorization: `Bearer ${aToken}` }
+            });
+            if (data.success && data.student) {
+                return data.student;
+            } else {
+                toast.error(data.message || 'Student not found');
+                return null;
+            }
+        } catch (error) {
+            handleApiError(error, 'Error fetching student by code');
+            return null;
+        }
+    }, [aToken, backendUrl, handleApiError]);
+
+    const getAllStudents = useCallback(async () => {
         try {
             const { data } = await axios.get(`${backendUrl}/api/admin/all-students`, {
-                headers: { aToken }
+                headers: { Authorization: `Bearer ${aToken}` }
             });
             if (data.success) {
                 setStudents(data.students);
@@ -50,117 +158,14 @@ const AdminContextProvider = (props) => {
                 toast.error(data.message);
             }
         } catch (error) {
-            toast.error(error.message);
+            handleApiError(error, 'Error fetching all students');
         }
-    };
+    }, [aToken, backendUrl, handleApiError]);
 
-    // Function to fetch all utilities
-    const getAllUtilitys = async () => {
-        try {
-            const { data } = await axios.get(`${backendUrl}/api/admin/all-utilitys`, {
-                headers: { aToken }
-            });
-            if (data.success) {
-                setUtilitys(data.utilitys);
-            } else {
-                toast.error(data.message);
-            }
-        } catch (error) {
-            toast.error(error.message);
-        }
-    };
-
-    // Function to update utility
-    const updateUtility = async (utility) => {
-        try {
-            const response = await axios.put(`${backendUrl}/api/admin/utilitys/${utility._id}`, utility, {
-                headers: { aToken },
-            });
-
-            if (response.data.success) {
-                toast.success("Utility updated successfully");
-                getAllUtilitys(); // Refresh the list of utilities
-            } else {
-                toast.error(response.data.message || "Failed to update utility");
-            }
-        } catch (error) {
-            toast.error("Error updating utility: " + error.message);
-        }
-    };
-
-    // Function to fetch dashboard data
-    const getDashData = async () => {
-        try {
-            const { data } = await axios.get(`${backendUrl}/api/admin/dashboard`, { headers: { aToken } });
-            console.log(data);  // Log the full response to verify the structure
-            if (data.success) {
-                setDashData(data.dashData);
-            } else {
-                toast.error(data.message);
-            }
-        } catch (error) {
-            console.log(error);
-            toast.error(error.message);
-        }
-    };
-
-    // Function to fetch all administrators
-    const getAllAdministrators = async () => {
-        try {
-            const { data } = await axios.get(`${backendUrl}/api/admin/all-administrators`, {
-                headers: { aToken }
-            });
-            if (data.success) {
-                setAdministrators(data.administrators);
-            } else {
-                toast.error(data.message);
-            }
-        } catch (error) {
-            toast.error(error.message);
-        }
-    };
-
-    // Function to update administrator
-    const updateAdministrator = async (administrator) => {
-        try {
-            const response = await axios.put(`${backendUrl}/api/admin/administrators/${administrator._id}`, administrator, {
-                headers: { aToken },
-            });
-
-            if (response.data.success) {
-                toast.success("Administrator updated successfully");
-                getAllAdministrators(); // Refresh the list of administrators
-            } else {
-                toast.error(response.data.message || "Failed to update administrator");
-            }
-        } catch (error) {
-            toast.error("Error updating administrator: " + error.message);
-        }
-    };
-
-    // Function to update teacher
-    const updateTeacher = async (teacher) => {
-        try {
-            const response = await axios.put(`${backendUrl}/api/admin/teachers/${teacher._id}`, teacher, {
-                headers: { aToken },
-            });
-
-            if (response.data.success) {
-                toast.success("Teacher updated successfully");
-                getAllTeachers(); // Refresh the list of teachers
-            } else {
-                toast.error(response.data.message || "Failed to update teacher");
-            }
-        } catch (error) {
-            toast.error("Error updating teacher: " + error.message);
-        }
-    };
-
-    // Function to fetch all teachers
-    const getAllTeachers = async () => {
+    const getAllTeachers = useCallback(async () => {
         try {
             const { data } = await axios.get(`${backendUrl}/api/admin/all-teachers`, {
-                headers: { aToken }
+                headers: { Authorization: `Bearer ${aToken}` }
             });
             if (data.success) {
                 setTeachers(data.teachers);
@@ -168,122 +173,545 @@ const AdminContextProvider = (props) => {
                 toast.error(data.message);
             }
         } catch (error) {
-            toast.error(error.message);
+            handleApiError(error, 'Error fetching all teachers');
         }
-    };
+    }, [aToken, backendUrl, handleApiError]);
 
-    // Function to delete teacher
-    const deleteTeacher = async (teacherId) => {
+    const updateTeacher = useCallback(async (teacher) => {
+        const url = `${backendUrl}/api/admin/teachers/${teacher._id}`;
+        console.log("Updating teacher at URL:", url);
+        try {
+            const response = await axios.put(url, teacher, {
+                headers: { Authorization: `Bearer ${aToken}` },
+            });
+
+            if (response.data.success) {
+                toast.success("Teacher updated successfully");
+                getAllTeachers();
+                return true;
+            } else {
+                toast.error(response.data.message || "Failed to update teacher");
+            }
+        } catch (error) {
+            handleApiError(error, 'Error updating teacher');
+        }
+    }, [aToken, backendUrl, getAllTeachers, handleApiError]);
+
+    const deleteTeacher = useCallback(async (teacherId) => {
         try {
             const response = await axios.delete(`${backendUrl}/api/admin/teachers/${teacherId}`, {
-                headers: { aToken },
+                headers: { Authorization: `Bearer ${aToken}` },
             });
 
             if (response.data.success) {
                 toast.success("Teacher deleted successfully");
-                getAllTeachers(); // Refresh the list of teachers
+                getAllTeachers();
+                return true;
             } else {
                 toast.error(response.data.message || "Failed to delete teacher");
             }
         } catch (error) {
-            toast.error("Error deleting teacher: " + error.message);
+            handleApiError(error, 'Error deleting teacher');
         }
-    };
-
-    // Function to update student
-    const updateStudent = async (student) => {
+    }, [aToken, backendUrl, getAllTeachers, handleApiError]);
+    
+    const updateStudent = useCallback(async (student) => {
         try {
             const response = await axios.put(`${backendUrl}/api/admin/students/${student._id}`, student, {
-                headers: { aToken },
+                headers: { Authorization: `Bearer ${aToken}` },
             });
 
             if (response.data.success) {
                 toast.success("Student updated successfully");
-                getAllStudents(); // Refresh the list of students
+                getAllStudents();
+                return true;
             } else {
                 toast.error(response.data.message || "Failed to update student");
             }
         } catch (error) {
-            toast.error("Error updating student: " + error.message);
+            handleApiError(error, 'Error updating student');
         }
-    };
+    }, [aToken, backendUrl, getAllStudents, handleApiError]);
 
-    // Function to delete student
-    const deleteStudent = async (studentId) => {
+    const deleteStudent = useCallback(async (studentId) => {
         try {
             const response = await axios.delete(`${backendUrl}/api/admin/students/${studentId}`, {
-                headers: { aToken },
+                headers: { Authorization: `Bearer ${aToken}` },
             });
 
             if (response.data.success) {
                 toast.success("Student deleted successfully");
-                getAllStudents(); // Refresh the list of students
+                getAllStudents();
+                return true;
             } else {
                 toast.error(response.data.message || "Failed to delete student");
             }
         } catch (error) {
-            toast.error("Error deleting student: " + error.message);
+            handleApiError(error, 'Error deleting student');
         }
-    };
+    }, [aToken, backendUrl, getAllStudents, handleApiError]);
 
-    // Function to delete administrator
-    const deleteAdministrator = async (administratorId) => {
+    const addStudent = useCallback(async (studentData) => {
         try {
-            const response = await axios.delete(`${backendUrl}/api/admin/administrators/${administratorId}`, {
-                headers: { aToken },
+            const response = await axios.post(`${backendUrl}/api/admin/add-student`, studentData, {
+                headers: {
+                    Authorization: `Bearer ${aToken}`,
+                    'Content-Type': 'multipart/form-data'
+                },
             });
 
             if (response.data.success) {
-                toast.success("Administrator deleted successfully");
-                getAllAdministrators(); // Refresh the list of administrators
+                toast.success("Student added successfully");
+                getAllStudents();
+                return true;
             } else {
-                toast.error(response.data.message || "Failed to delete administrator");
+                toast.error(response.data.message || "Failed to add student");
+                return false;
             }
         } catch (error) {
-            toast.error("Error deleting administrator: " + error.message);
+            handleApiError(error, 'Error adding student');
+            return false;
         }
-    };
+    }, [aToken, backendUrl, getAllStudents, handleApiError]);
 
-    // Function to delete utility
-    const deleteUtility = async (utilityId) => {
+    const addTeacher = useCallback(async (teacherData) => {
         try {
-            const response = await axios.delete(`${backendUrl}/api/admin/utilitys/${utilityId}`, {
-                headers: { aToken },
+            const response = await axios.post(`${backendUrl}/api/admin/add-teacher`, teacherData, {
+                headers: {
+                    Authorization: `Bearer ${aToken}`,
+                    'Content-Type': 'multipart/form-data'
+                },
             });
 
             if (response.data.success) {
-                toast.success("Utility deleted successfully");
-                getAllUtilitys(); // Refresh the list of utilities
+                toast.success("Teacher added successfully");
+                getAllTeachers();
+                return true;
             } else {
-                toast.error(response.data.message || "Failed to delete utility");
+                toast.error(response.data.message || "Failed to add teacher");
+                return false;
             }
         } catch (error) {
-            toast.error("Error deleting utility: " + error.message);
+            handleApiError(error, 'Error adding teacher');
+            return false;
         }
-    };
+    }, [aToken, backendUrl, getAllTeachers, handleApiError]);
+
+    const loginAdmin = useCallback(async (email, password) => {
+        try {
+            const response = await axios.post(`${backendUrl}/api/admin/login`, { email, password });
+
+            if (response.data.success) {
+                updateAToken(response.data.token);
+                toast.success("Login successful");
+                return true;
+            } else {
+                toast.error(response.data.message || "Login failed");
+                return false;
+            }
+        } catch (error) {
+            handleApiError(error, 'Login error');
+            return false;
+        }
+    }, [backendUrl, handleApiError, updateAToken]);
+
+    const adminSignIn = useCallback(async (code) => {
+        try {
+            const response = await axios.put(`${backendUrl}/api/admin/sign-in/${code}`, {}, {
+                headers: { Authorization: `Bearer ${aToken}` },
+            });
+
+            if (response.data.success) {
+                toast.success("Sign in successful");
+                return true;
+            } else {
+                toast.error(response.data.message || "Sign in failed");
+                return false;
+            }
+        } catch (error) {
+            handleApiError(error, 'Sign in error');
+            return false;
+        }
+    }, [aToken, backendUrl, handleApiError]);
+
+    const adminSignOut = useCallback(async (code) => {
+        try {
+            const response = await axios.put(`${backendUrl}/api/admin/sign-out/${code}`, {}, {
+                headers: { Authorization: `Bearer ${aToken}` },
+            });
+
+            if (response.data.success) {
+                toast.success("Sign out successful");
+                return true;
+            } else {
+                toast.error(response.data.message || "Sign out failed");
+                return false;
+            }
+        } catch (error) {
+            handleApiError(error, 'Sign out error');
+            return false;
+        }
+    }, [aToken, backendUrl, handleApiError]);
+
+    const fetchAttendanceRecords = useCallback(async (date, userType = 'Teacher') => {
+        try {
+            const isoDate = date.toISOString();
+            const response = await axios.get(`${backendUrl}/api/admin/attendance?date=${isoDate}&userType=${userType}`, {
+                headers: { Authorization: `Bearer ${aToken}` },
+            });
+
+            if (response.data.success) {
+                return response.data.attendanceRecords;
+            } else {
+                toast.error(response.data.message || "Failed to fetch attendance records");
+                return [];
+            }
+        } catch (error) {
+            handleApiError(error, 'Error fetching attendance records');
+            return [];
+        }
+    }, [aToken, backendUrl, handleApiError]);
+
+    const getDashData = useCallback(async () => {
+        try {
+            const { data } = await axios.get(`${backendUrl}/api/admin/dashboard`, {
+                headers: { Authorization: `Bearer ${aToken}` }
+            });
+            if (data.success) {
+                setDashData(data.dashData);
+            } else {
+                toast.error(data.message);
+            }
+        } catch (error) {
+            handleApiError(error, 'Error fetching dashboard data');
+        }
+    }, [aToken, backendUrl, handleApiError]);
+
+    const addTeacherClassSchedule = useCallback(async (teacherId, classSchedule) => {
+        try {
+            const response = await axios.post(`${backendUrl}/api/admin/teachers/${teacherId}/class-schedule`, { classSchedule }, {
+                headers: { Authorization: `Bearer ${aToken}` },
+            });
+
+            if (response.data.success) {
+                toast.success("Class schedule added successfully");
+                getAllTeachers();
+                return true;
+            } else {
+                toast.error(response.data.message || "Failed to add class schedule");
+                return false;
+            }
+        } catch (error) {
+            handleApiError(error, 'Error adding class schedule');
+            return false;
+        }
+    }, [aToken, backendUrl, getAllTeachers, handleApiError]);
+
+    const removeTeacherClassSchedule = useCallback(async (teacherId, classSchedule) => {
+        try {
+            const response = await axios.delete(`${backendUrl}/api/admin/teachers/${teacherId}/class-schedule`, {
+                headers: { Authorization: `Bearer ${aToken}` },
+                data: { classSchedule }
+            });
+
+            if (response.data.success) {
+                toast.success("Class schedule removed successfully");
+                getAllTeachers();
+                return true;
+            } else {
+                toast.error(response.data.message || "Failed to remove class schedule");
+                return false;
+            }
+        } catch (error) {
+            handleApiError(error, 'Error removing class schedule');
+            return false;
+        }
+    }, [aToken, backendUrl, getAllTeachers, handleApiError]);
+
+    const editTeacherClassSchedule = useCallback(async (teacherId, oldClassSchedule, newClassSchedule) => {
+        try {
+            const response = await axios.put(`${backendUrl}/api/admin/teachers/${teacherId}/class-schedule`, { oldClassSchedule, newClassSchedule }, {
+                headers: { Authorization: `Bearer ${aToken}` },
+            });
+
+            if (response.data.success) {
+                toast.success("Class schedule updated successfully");
+                getAllTeachers();
+                return true;
+            } else {
+                toast.error(response.data.message || "Failed to update class schedule");
+                return false;
+            }
+        } catch (error) {
+            handleApiError(error, 'Error editing class schedule');
+            return false;
+        }
+    }, [aToken, backendUrl, getAllTeachers, handleApiError]);
+
+    const addTeacherEducationLevel = useCallback(async (teacherId, educationLevel) => {
+        try {
+            const response = await axios.post(`${backendUrl}/api/admin/teachers/${teacherId}/education-level`, { educationLevel }, {
+                headers: { Authorization: `Bearer ${aToken}` },
+            });
+
+            if (response.data.success) {
+                toast.success("Education level added successfully");
+                getAllTeachers();
+                return true;
+            } else {
+                toast.error(response.data.message || "Failed to add education level");
+                return false;
+            }
+        } catch (error) {
+            handleApiError(error, 'Error adding education level');
+            return false;
+        }
+    }, [aToken, backendUrl, getAllTeachers, handleApiError]);
+
+    const removeTeacherEducationLevel = useCallback(async (teacherId, educationLevel) => {
+        try {
+            const response = await axios.delete(`${backendUrl}/api/admin/teachers/${teacherId}/education-level`, {
+                headers: { Authorization: `Bearer ${aToken}` },
+                data: { educationLevel }
+            });
+
+            if (response.data.success) {
+                toast.success("Education level removed successfully");
+                getAllTeachers();
+                return true;
+            } else {
+                toast.error(response.data.message || "Failed to remove education level");
+                return false;
+            }
+        } catch (error) {
+            handleApiError(error, 'Error removing education level');
+            return false;
+        }
+    }, [aToken, backendUrl, getAllTeachers, handleApiError]);
+
+    const editTeacherEducationLevel = useCallback(async (teacherId, oldEducationLevel, newEducationLevel) => {
+        try {
+            const response = await axios.put(`${backendUrl}/api/admin/teachers/${teacherId}/education-level`, { oldEducationLevel, newEducationLevel }, {
+                headers: { Authorization: `Bearer ${aToken}` },
+            });
+
+            if (response.data.success) {
+                toast.success("Education level updated successfully");
+                getAllTeachers();
+                return true;
+            } else {
+                toast.error(response.data.message || "Failed to update education level");
+                return false;
+            }
+        } catch (error) {
+            handleApiError(error, 'Error editing education level');
+            return false;
+        }
+    }, [aToken, backendUrl, getAllTeachers, handleApiError]);
+
+    const addTeacherGradeYearLevel = useCallback(async (teacherId, gradeYearLevel) => {
+        try {
+            const response = await axios.post(`${backendUrl}/api/admin/teachers/${teacherId}/grade-year-level`, { gradeYearLevel }, {
+                headers: { Authorization: `Bearer ${aToken}` },
+            });
+
+            if (response.data.success) {
+                toast.success("Grade year level added successfully");
+                getAllTeachers();
+                return true;
+            } else {
+                toast.error(response.data.message || "Failed to add grade year level");
+                return false;
+            }
+        } catch (error) {
+            handleApiError(error, 'Error adding grade year level');
+            return false;
+        }
+    }, [aToken, backendUrl, getAllTeachers, handleApiError]);
+
+    const removeTeacherGradeYearLevel = useCallback(async (teacherId, gradeYearLevel) => {
+        try {
+            const response = await axios.delete(`${backendUrl}/api/admin/teachers/${teacherId}/grade-year-level`, {
+                headers: { Authorization: `Bearer ${aToken}` },
+                data: { gradeYearLevel }
+            });
+
+            if (response.data.success) {
+                toast.success("Grade year level removed successfully");
+                getAllTeachers();
+                return true;
+            } else {
+                toast.error(response.data.message || "Failed to remove grade year level");
+                return false;
+            }
+        } catch (error) {
+            handleApiError(error, 'Error removing grade year level');
+            return false;
+        }
+    }, [aToken, backendUrl, getAllTeachers, handleApiError]);
+
+    const editTeacherGradeYearLevel = useCallback(async (teacherId, oldGradeYearLevel, newGradeYearLevel) => {
+        try {
+            const response = await axios.put(`${backendUrl}/api/admin/teachers/${teacherId}/grade-year-level`, { oldGradeYearLevel, newGradeYearLevel }, {
+                headers: { Authorization: `Bearer ${aToken}` },
+            });
+
+            if (response.data.success) {
+                toast.success("Grade year level updated successfully");
+                getAllTeachers();
+                return true;
+            } else {
+                toast.error(response.data.message || "Failed to update grade year level");
+                return false;
+            }
+        } catch (error) {
+            handleApiError(error, 'Error editing grade year level');
+            return false;
+        }
+    }, [aToken, backendUrl, getAllTeachers, handleApiError]);
+
+    const addTeacherSection = useCallback(async (teacherId, section) => {
+        try {
+            const response = await axios.post(`${backendUrl}/api/admin/teachers/${teacherId}/section`, { section }, {
+                headers: { Authorization: `Bearer ${aToken}` },
+            });
+
+            if (response.data.success) {
+                toast.success("Section added successfully");
+                getAllTeachers();
+                return true;
+            } else {
+                toast.error(response.data.message || "Failed to add section");
+                return false;
+            }
+        } catch (error) {
+            handleApiError(error, 'Error adding section');
+            return false;
+        }
+    }, [aToken, backendUrl, getAllTeachers, handleApiError]);
+
+    const removeTeacherSection = useCallback(async (teacherId, section) => {
+        try {
+            const response = await axios.delete(`${backendUrl}/api/admin/teachers/${teacherId}/section`, {
+                headers: { Authorization: `Bearer ${aToken}` },
+                data: { section }
+            });
+
+            if (response.data.success) {
+                toast.success("Section removed successfully");
+                getAllTeachers();
+                return true;
+            } else {
+                toast.error(response.data.message || "Failed to remove section");
+                return false;
+            }
+        } catch (error) {
+            handleApiError(error, 'Error removing section');
+            return false;
+        }
+    }, [aToken, backendUrl, getAllTeachers, handleApiError]);
+
+    const addTeacherSubjects = useCallback(async (teacherId, subjects) => {
+        try {
+            const response = await axios.post(`${backendUrl}/api/admin/teachers/${teacherId}/subjects`, { subjects }, {
+                headers: { Authorization: `Bearer ${aToken}` },
+            });
+
+            if (response.data.success) {
+                toast.success("Subjects added successfully");
+                getAllTeachers();
+                return true;
+            } else {
+                toast.error(response.data.message || "Failed to add subjects");
+                return false;
+            }
+        } catch (error) {
+            handleApiError(error, 'Error adding subjects');
+            return false;
+        }
+    }, [aToken, backendUrl, getAllTeachers, handleApiError]);
+
+    const removeTeacherSubjects = useCallback(async (teacherId, subjects) => {
+        try {
+            const response = await axios.delete(`${backendUrl}/api/admin/teachers/${teacherId}/subjects`, {
+                headers: { Authorization: `Bearer ${aToken}` },
+                data: { subjects }
+            });
+
+            if (response.data.success) {
+                toast.success("Subjects removed successfully");
+                getAllTeachers();
+                return true;
+            } else {
+                toast.error(response.data.message || "Failed to remove subjects");
+                return false;
+            }
+        } catch (error) {
+            handleApiError(error, 'Error removing subjects');
+            return false;
+        }
+    }, [aToken, backendUrl, getAllTeachers, handleApiError]);
+
+    const editTeacherSubjects = useCallback(async (teacherId, oldSubjects, newSubjects) => {
+        try {
+            const response = await axios.put(`${backendUrl}/api/admin/teachers/${teacherId}/subjects`, { oldSubjects, newSubjects }, {
+                headers: { Authorization: `Bearer ${aToken}` },
+            });
+
+            if (response.data.success) {
+                toast.success("Subjects updated successfully");
+                getAllTeachers();
+                return true;
+            } else {
+                toast.error(response.data.message || "Failed to update subjects");
+                return false;
+            }
+        } catch (error) {
+            handleApiError(error, 'Error updating subjects');
+            return false;
+        }
+    }, [aToken, backendUrl, getAllTeachers, handleApiError]);
 
     const value = {
         aToken,
-        setAToken,
+        setAToken: updateAToken,
+        employees,
         students,
-        administrators,
         teachers,
-        utilitys,
-        getAllUtilitys,
-        updateUtility,
         getAllStudents,
-        getDashData,
-        dashData,
-        getAllAdministrators,
-        updateAdministrator,
-        updateTeacher,
         getAllTeachers,
+        getAllEmployees,
+        updateTeacher,
         getUserByCode,
         deleteTeacher,
         updateStudent,
         deleteStudent,
-        deleteAdministrator,
-        deleteUtility,
+        addStudent,
+        addTeacher,
+        addEmployee,
+        loginAdmin,
+        getStudentByCode,
+        adminSignIn,
+        adminSignOut,
+        fetchAttendanceRecords,
+        getDashData,
+        dashData,
+        addTeacherClassSchedule,
+        removeTeacherClassSchedule,
+        editTeacherClassSchedule,
+        addTeacherEducationLevel,
+        removeTeacherEducationLevel,
+        editTeacherEducationLevel,
+        addTeacherGradeYearLevel,
+        removeTeacherGradeYearLevel,
+        editTeacherGradeYearLevel,
+        addTeacherSection,
+        removeTeacherSection,
+        addTeacherSubjects,
+        removeTeacherSubjects,
+        editTeacherSubjects,
+        updateEmployee,
+        deleteEmployee,
     };
 
     return <AdminContext.Provider value={value}>{props.children}</AdminContext.Provider>;

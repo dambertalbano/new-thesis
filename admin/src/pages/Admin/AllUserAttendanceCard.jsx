@@ -1,43 +1,37 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { FaArrowLeft, FaArrowRight, FaClock, FaSearch } from 'react-icons/fa';
 import { useAdminContext } from '../../context/AdminContext';
 
-const AttendanceTeacherCard = () => {
-    const { teachers, aToken, fetchAttendanceRecords } = useAdminContext();
+const AllUserAttendanceCard = () => {
+    const { students, teachers, aToken, fetchAttendanceRecords } = useAdminContext();
     const [isViewingTimeIn, setIsViewingTimeIn] = useState(true);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [attendanceRecords, setAttendanceRecords] = useState([]);
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [userListsLoading, setUserListsLoading] = useState(true);
 
     useEffect(() => {
         const fetchData = async () => {
+            setUserListsLoading(true);
             setLoading(true);
             setError(null);
+
             try {
                 const records = await fetchAttendanceRecords(currentDate);
-                if (!records || !Array.isArray(records)) {
-                    console.error("fetchAttendanceRecords did not return an array:", records);
-                }
-
-                // Filter records to only include teachers
-                const teacherRecords = records.filter(record => record.userType === 'Teacher');
-
-                setAttendanceRecords(teacherRecords);
+                setAttendanceRecords(records);
             } catch (err) {
-                console.error('Error fetching attendance records:', err);
                 setError(err.message || 'Failed to fetch attendance records');
                 setAttendanceRecords([]);
             } finally {
                 setLoading(false);
+                setUserListsLoading(false);
             }
         };
 
         if (aToken) {
             fetchData();
-        } else {
-            console.warn('aToken is missing. Skipping fetchData.');
         }
     }, [aToken, fetchAttendanceRecords, currentDate]);
 
@@ -49,21 +43,10 @@ const AttendanceTeacherCard = () => {
         setSearchTerm(e.target.value);
     }, [setSearchTerm]);
 
-    const filteredAttendanceRecords = React.useMemo(() => {
-        const lowerSearchTerm = searchTerm.toLowerCase();
-
-        const filtered = attendanceRecords.filter(record => {
-            if (!record.user) {
-                console.warn(`User data missing for record: ${record._id}`);
-                return false;
-            }
-
-            const fullName = `${record.user.firstName} ${record.user.middleName || ''} ${record.user.lastName}`.toLowerCase();
-            return fullName.includes(lowerSearchTerm);
-        });
-
-        return filtered;
-    }, [attendanceRecords, searchTerm]);
+    const formatName = useCallback((user) => {
+        if (!user) return 'N/A';
+        return `${user.lastName || ''}, ${user.firstName || ''} ${user.middleName ? `${user.middleName.charAt(0)}.` : ''}`.trim();
+    }, []);
 
     const formatDate = useCallback((date) => {
         if (!date) return 'N/A';
@@ -91,30 +74,32 @@ const AttendanceTeacherCard = () => {
         });
     }, []);
 
-    const userRows = React.useMemo(() => {
-        const rows = filteredAttendanceRecords
-            .filter(record => {
-                const eventTypeMatches = isViewingTimeIn ? record.eventType === 'sign-in' : record.eventType === 'sign-out';
-                return eventTypeMatches;
-            })
-            .map((record) => {
-                if (!record.user) {
-                    console.warn(`User data missing for record: ${record._id}`);
-                    return null;
-                }
+    const userRows = useMemo(() => {
+        if (!Array.isArray(attendanceRecords)) {
+            console.warn("attendanceRecords is not an array:", attendanceRecords);
+            return [];
+        }
 
-                return (
-                    <tr key={record._id} className="border-b hover:bg-gray-50">
-                        <td className="px-4 py-2">{`${record.user.firstName} ${record.user.middleName || ''} ${record.user.lastName}`}</td>
-                        <td className="px-4 py-2">Teacher</td>
-                        <td className="px-4 py-2">{formatDate(record.timestamp)}</td>
-                        <td className="px-4 py-2">{formatTime(record.timestamp)}</td>
-                    </tr>
-                );
-            }).filter(row => row !== null);
+        // Filter attendance records based on isViewingTimeIn
+        const filteredAttendanceRecords = attendanceRecords.filter(record => {
+            return isViewingTimeIn ? record.eventType === 'sign-in' : record.eventType === 'sign-out';
+        });
 
-        return rows;
-    }, [filteredAttendanceRecords, formatDate, formatTime, isViewingTimeIn]);
+        return filteredAttendanceRecords.map((record) => {
+            const user = record.user;
+            const role = record.userType;
+
+            return (
+                <tr key={record._id} className="border-b hover:bg-gray-50">
+                    <td className="px-4 py-2">{user.studentNumber || user._id}</td>
+                    <td className="px-4 py-2">{formatName(user)}</td>
+                    <td className="px-4 py-2">{role}</td>
+                    <td className="px-4 py-2">{formatDate(record.timestamp)}</td>
+                    <td className="px-4 py-2">{formatTime(record.timestamp)}</td>
+                </tr>
+            );
+        });
+    }, [attendanceRecords, formatName, formatDate, formatTime, isViewingTimeIn]); // Add isViewingTimeIn to dependencies
 
     if (loading) {
         return <div className="flex justify-center items-center h-full">Loading...</div>;
@@ -157,7 +142,6 @@ const AttendanceTeacherCard = () => {
                 </div>
             </div>
 
-            {/* Date Navigation */}
             <div className="flex justify-center items-center mb-4">
                 <button
                     className="bg-gray-200 hover:bg-gray-300 rounded-full p-2 mr-2"
@@ -178,6 +162,7 @@ const AttendanceTeacherCard = () => {
                 <table className="min-w-full table-auto border-collapse mt-5">
                     <thead>
                         <tr className="border-b bg-gray-100">
+                            <th className="px-4 py-2 text-left text-gray-600">ID Number</th>
                             <th className="px-4 py-2 text-left text-gray-600">Name</th>
                             <th className="px-4 py-2 text-left text-gray-600">Role</th>
                             <th className="px-4 py-2 text-left text-gray-600">Date</th>
@@ -193,4 +178,4 @@ const AttendanceTeacherCard = () => {
     );
 };
 
-export default AttendanceTeacherCard;
+export default AllUserAttendanceCard;

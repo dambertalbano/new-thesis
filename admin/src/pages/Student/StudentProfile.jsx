@@ -1,13 +1,12 @@
 import axios from 'axios'
 import React, { useContext, useEffect, useState } from 'react'
 import { toast } from 'react-toastify'
-import { AppContext } from '../../context/AppContext'
 import { StudentContext } from '../../context/StudentContext'
 
 const StudentProfile = () => {
 
     const { dToken, profileData, setProfileData, getProfileData } = useContext(StudentContext)
-    const { currency, backendUrl } = useContext(AppContext)
+    const backendUrl = import.meta.env.VITE_BACKEND_URL;
     const [isEdit, setIsEdit] = useState(false)
 
     const updateProfile = async () => {

@@ -1,12 +1,11 @@
 import axios from 'axios';
 import React, { useContext, useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
-import { AppContext } from '../../context/AppContext';
 import { TeacherContext } from '../../context/TeacherContext';
 
 const TeacherProfile = () => {
     const { dToken, profileData, setProfileData, getProfileData } = useContext(TeacherContext);
-    const { backendUrl } = useContext(AppContext);
+    const backendUrl = import.meta.env.VITE_BACKEND_URL;
     const [isEdit, setIsEdit] = useState(false);
     const [loading, setLoading] = useState(false);
 

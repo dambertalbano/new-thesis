@@ -2,8 +2,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { FaArrowLeft, FaArrowRight, FaClock, FaSearch } from 'react-icons/fa';
 import { useAdminContext } from '../../context/AdminContext';
 
-const AttendanceTeacherCard = () => {
-    const { teachers, aToken, fetchAttendanceRecords } = useAdminContext();
+const AttendanceEmployeeCard = () => {
+    const { employees, aToken, fetchAttendanceRecords } = useAdminContext();
     const [isViewingTimeIn, setIsViewingTimeIn] = useState(true);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -21,10 +21,10 @@ const AttendanceTeacherCard = () => {
                     console.error("fetchAttendanceRecords did not return an array:", records);
                 }
 
-                // Filter records to only include teachers
-                const teacherRecords = records.filter(record => record.userType === 'Teacher');
+                // Filter records to only include employees
+                const employeeRecords = records.filter(record => record.userType === 'Employee');
 
-                setAttendanceRecords(teacherRecords);
+                setAttendanceRecords(employeeRecords);
             } catch (err) {
                 console.error('Error fetching attendance records:', err);
                 setError(err.message || 'Failed to fetch attendance records');
@@ -106,7 +106,8 @@ const AttendanceTeacherCard = () => {
                 return (
                     <tr key={record._id} className="border-b hover:bg-gray-50">
                         <td className="px-4 py-2">{`${record.user.firstName} ${record.user.middleName || ''} ${record.user.lastName}`}</td>
-                        <td className="px-4 py-2">Teacher</td>
+                        <td className="px-4 py-2">Employee</td>
+                        <td className="px-4 py-2">{record.user.position || 'N/A'}</td>
                         <td className="px-4 py-2">{formatDate(record.timestamp)}</td>
                         <td className="px-4 py-2">{formatTime(record.timestamp)}</td>
                     </tr>
@@ -180,6 +181,7 @@ const AttendanceTeacherCard = () => {
                         <tr className="border-b bg-gray-100">
                             <th className="px-4 py-2 text-left text-gray-600">Name</th>
                             <th className="px-4 py-2 text-left text-gray-600">Role</th>
+                            <th className="px-4 py-2 text-left text-gray-600">Position</th>
                             <th className="px-4 py-2 text-left text-gray-600">Date</th>
                             <th className="px-4 py-2 text-left text-gray-600">Time</th>
                         </tr>
@@ -193,4 +195,4 @@ const AttendanceTeacherCard = () => {
     );
 };
 
-export default AttendanceTeacherCard;
+export default AttendanceEmployeeCard;

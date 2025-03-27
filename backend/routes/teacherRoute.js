@@ -1,11 +1,14 @@
 import express from 'express';
 import { loginTeacher, teacherProfile, updateTeacherProfile } from '../controllers/teacherController.js';
 import authTeacher from '../middleware/authTeacher.js';
+import teacherModel from '../models/teacherModel.js';
+
 const teacherRouter = express.Router();
 
-teacherRouter.post("/login", loginTeacher)
-teacherRouter.get("/profile", authTeacher, teacherProfile)
-teacherRouter.post("/update-profile", authTeacher, updateTeacherProfile)
+teacherRouter.post("/login", loginTeacher);
+teacherRouter.get("/profile", authTeacher, teacherProfile);
+teacherRouter.post("/update-profile", authTeacher, updateTeacherProfile); // Add the updateTeacherProfile function
+
 teacherRouter.get('/code/:code', async (req, res) => {
     try {
         const teacher = await teacherModel.findOne({ code: req.params.code });
@@ -19,4 +22,5 @@ teacherRouter.get('/code/:code', async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 });
+
 export default teacherRouter;

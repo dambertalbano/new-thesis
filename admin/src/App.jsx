@@ -1,5 +1,5 @@
 import React, { useContext, useEffect } from 'react';
-import { Route, Routes, useNavigate } from 'react-router-dom';
+import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import EditCard from './components/EditCard';
@@ -7,116 +7,131 @@ import Navbar from './components/Navbar';
 import Sidebar from './components/Sidebar';
 import UserCard from './components/UserCard';
 import { AdminContext } from './context/AdminContext';
+import { EmployeeContext } from './context/EmployeeContext';
+import { StudentContext } from './context/StudentContext';
 import { TeacherContext } from './context/TeacherContext';
-import AddAdministrator from './pages/Admin/AddAdministrator';
+import AddEmployee from './pages/Admin/AddEmployee';
 import AddStudent from './pages/Admin/AddStudent';
 import AddTeacher from './pages/Admin/AddTeacher';
 import AddUsers from './pages/Admin/AddUsers';
-import AddUtility from './pages/Admin/AddUtility';
-import AdministratorsList from './pages/Admin/AdministratorList';
+import AllUserAttendanceCard from './pages/Admin/AllUserAttendanceCard';
 import AllUsers from './pages/Admin/AllUsers';
 import Attendance from './pages/Admin/Attendance';
-import AttendanceAdministratorCard from './pages/Admin/AttendanceAdministratorCard';
+import AttendanceEmployeeCard from './pages/Admin/AttendanceEmployeeCard';
 import AttendanceStudentCard from './pages/Admin/AttendanceStudentCard';
 import AttendanceTeacherCard from './pages/Admin/AttendanceTeacherCard';
-import AttendanceUtilityCard from './pages/Admin/AttendanceUtilityCard';
 import Dashboard from './pages/Admin/Dashboard';
 import EditUser from './pages/Admin/EditUser';
+import EmployeeList from './pages/Admin/EmployeeList';
 import RFID_Scan from './pages/Admin/RFID_Scan';
 import StudentsList from './pages/Admin/StudentsList';
 import TeachersList from './pages/Admin/TeacherList';
-import UtilitysList from './pages/Admin/UtilityList';
-import AdministratorAppointments from './pages/Administrator/AdministratorAppointment';
-import AdministratorDashboard from './pages/Administrator/AdministratorDashboard';
-import AdministratorProfile from './pages/Administrator/AdministratorProfile';
+import EmployeeDashboard from './pages/Employee/EmployeeDashboard';
+import EmployeeProfile from './pages/Employee/EmployeeProfile';
 import Login from './pages/Login';
-import StudentAppointments from './pages/Student/StudentAppointments';
 import StudentDashboard from './pages/Student/StudentDashboard';
 import StudentProfile from './pages/Student/StudentProfile';
-import TeacherAppointments from './pages/Teacher/TeacherAppointment';
 import TeacherDashboard from './pages/Teacher/TeacherDashboard';
 import TeacherProfile from './pages/Teacher/TeacherProfile';
-import UtilityAppointments from './pages/Utility/UtilityAppointment';
-import UtilityDashboard from './pages/Utility/UtilityDashboard';
-import UtilityProfile from './pages/Utility/UtilityProfile';
 
 const App = () => {
-  const { aToken, setAToken } = useContext(AdminContext);
-  const { dToken, setDToken } = useContext(TeacherContext);
-  const navigate = useNavigate();
+    const { aToken } = useContext(AdminContext);
+    const { dToken } = useContext(TeacherContext);
+    const { sToken } = useContext(StudentContext);
+    const { eToken } = useContext(EmployeeContext);
+    const navigate = useNavigate();
+    const location = useLocation();
 
-  useEffect(() => {
-    // Check for tokens in local storage on mount
-    const storedAToken = localStorage.getItem('aToken');
-    const storedDToken = localStorage.getItem('dToken');
-    if (storedAToken) {
-      setAToken(storedAToken);
-    }
-    if (storedDToken) {
-      setDToken(storedDToken);
-    }
-  }, [setAToken, setDToken]);
+    useEffect(() => {
+        console.log('App.jsx useEffect triggered');
+        console.log('aToken:', aToken);
+        console.log('dToken:', dToken);
+        console.log('sToken:', sToken);
+        console.log('eToken:', eToken);
+        console.log('location.pathname:', location.pathname);
 
-  const handleLogout = () => {
-    // Clear tokens on logout
-    setAToken(null);
-    setDToken(null);
-    localStorage.removeItem('aToken');
-    localStorage.removeItem('dToken');
-    navigate('/');
-  };
+        const initialRoute = () => {
+            if (aToken) {
+                if (location.pathname === '/') {
+                    navigate('/admin-dashboard', { replace: true });
+                }
+            } else if (dToken) {
+                if (location.pathname === '/') {
+                    navigate('/teacher-dashboard', { replace: true });
+                }
+            } else if (sToken) {
+                if (location.pathname === '/') {
+                    navigate('/student-dashboard', { replace: true });
+                }
+            } else if (eToken) {
+                if (location.pathname === '/') {
+                    navigate('/employee-dashboard', { replace: true });
+                }
+            } else {
+                navigate('/', { replace: true });
+            }
+        };
 
-  console.log("Tokens:", { aToken, dToken });
+        initialRoute();
+    }, [aToken, dToken, sToken, eToken, navigate, location.pathname]);
 
-  return aToken || dToken ? (
-    <div className='bg-[#F8F9FD]'>
-      <ToastContainer />
-      <Navbar onLogout={handleLogout} />
-      <div className='flex items-start'>
-        <Sidebar />
-        <Routes>
-          <Route path='/' element={<Login />} />
-          <Route path='/admin-dashboard' element={<Dashboard />} />
-          <Route path='/teacher-dashboard' element={<TeacherDashboard />} />
-          <Route path='/rfid-scan' element={<RFID_Scan />} />
-          <Route path='/add-student' element={<AddStudent />} />
-          <Route path='/add-administrator' element={<AddAdministrator />} />
-          <Route path='/add-teacher' element={<AddTeacher />} />
-          <Route path='/add-utility' element={<AddUtility />} />
-          <Route path='/student-list' element={<StudentsList />} />
-          <Route path='/administrator-list' element={<AdministratorsList />} />
-          <Route path='/teacher-list' element={<TeachersList />} />
-          <Route path='/utility-list' element={<UtilitysList />} />
-          <Route path='/user-card' element={<UserCard />} />
-          <Route path='/edit-card' element={<EditCard />} />
-          <Route path='/attendance' element={<Attendance />} />
-          <Route path='/attendance-admin' element={<AttendanceAdministratorCard />} />
-          <Route path='/attendance-teacher' element={<AttendanceTeacherCard />} />
-          <Route path='/attendance-student' element={<AttendanceStudentCard />} />
-          <Route path='/attendance-utility' element={<AttendanceUtilityCard />} />
-          <Route path='/student-dashboard' element={<StudentDashboard />} />
-          <Route path='/administrator-dashboard' element={<AdministratorDashboard />} />
-          <Route path='/utility-dashboard' element={<UtilityDashboard />} />
-          <Route path='/administrator-appointments' element={<AdministratorAppointments />} />
-          <Route path='/teacher-appointments' element={<TeacherAppointments />} />
-          <Route path='/utility-appointments' element={<UtilityAppointments />} />
-          <Route path='/student-appointments' element={<StudentAppointments />} />
-          <Route path='/student-profile' element={<StudentProfile />} />
-          <Route path='/administrator-profile' element={<AdministratorProfile />} />
-          <Route path='/teacher-profile' element={<TeacherProfile />} />
-          <Route path='/utility-profile' element={<UtilityProfile />} />
-          <Route path='/all-users' element={<AllUsers />} />
-          <Route path='/add-users' element={<AddUsers />} />
-          <Route path='/edit-users' element={<EditUser />} />
-        </Routes>
-      </div>
-    </div>
-  ) : (
-    <>
-      <ToastContainer />
-      <Login />
-    </>
-  );
+    const handleLogout = () => {
+        console.log('handleLogout triggered');
+        // Centralized logout logic (clear tokens in all contexts)
+        localStorage.removeItem('aToken');
+        localStorage.removeItem('dToken');
+        localStorage.removeItem('sToken');
+        localStorage.removeItem('eToken');
+        // Force a re-render to trigger the useEffect
+        navigate(0); // This forces a full re-render
+    };
+
+    return (
+        <>
+            <ToastContainer />
+            {(aToken || dToken || sToken || eToken) ? (
+                <div className='bg-[#F8F9FD]'>
+                    <Navbar onLogout={handleLogout} />
+                    <div className='flex items-start'>
+                        <Sidebar />
+                        <Routes>
+                            <Route path='/admin-dashboard' element={<Dashboard />} />
+                            <Route path='/teacher-dashboard' element={<TeacherDashboard />} />
+                            <Route path='/student-dashboard' element={<StudentDashboard />} />
+                            <Route path='/employee-dashboard' element={<EmployeeDashboard />} />
+                            <Route path='/rfid-scan' element={<RFID_Scan />} />
+                            <Route path='/add-student' element={<AddStudent />} />
+                            <Route path='/add-teacher' element={<AddTeacher />} />
+                            <Route path='/add-employee' element={<AddEmployee />} />
+                            <Route path='/student-list' element={<StudentsList />} />
+                            <Route path='/teacher-list' element={<TeachersList />} />
+                            <Route path='/employee-list' element={<EmployeeList />} />
+                            <Route path='/user-card' element={<UserCard />} />
+                            <Route path='/edit-card' element={<EditCard />} />
+                            <Route path='/attendance-all' element={<AllUserAttendanceCard />} />
+                            <Route path='/attendance' element={<Attendance />} />
+                            <Route path='/attendance-student' element={<AttendanceStudentCard />} />
+                            <Route path='/attendance-teacher' element={<AttendanceTeacherCard />} />
+                            <Route path='/attendance-employee' element={<AttendanceEmployeeCard />} />
+                            <Route path='/student-profile' element={<StudentProfile />} />
+                            <Route path='/employee-profile' element={<EmployeeProfile />} />
+                            <Route path='/teacher-profile' element={<TeacherProfile />} />
+                            <Route path='/all-users' element={<AllUsers />} />
+                            <Route path='/add-users' element={<AddUsers />} />
+                            <Route path='/edit-users' element={<EditUser />} />
+                        </Routes>
+                    </div>
+                </div>
+            ) : (
+                <>
+                    <ToastContainer />
+                    <Routes>
+                        <Route path="/" element={<Login />} />
+                    </Routes>
+                </>
+            )}
+        </>
+    );
 };
 
 export default App;

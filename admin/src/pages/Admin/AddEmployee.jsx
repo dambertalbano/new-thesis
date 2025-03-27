@@ -4,7 +4,7 @@ import { RFIDReaderInput } from 'rfid-reader-input';
 import { assets } from '../../assets/assets';
 import { AdminContext } from '../../context/AdminContext';
 
-const AddTeacher = () => {
+const AddEmployee = () => {
     const [docImg, setDocImg] = useState(null);
     const [firstName, setFirstName] = useState('');
     const [middleName, setMiddleName] = useState('');
@@ -13,10 +13,11 @@ const AddTeacher = () => {
     const [password, setPassword] = useState('');
     const [number, setNumber] = useState('');
     const [address, setAddress] = useState('');
-    const [code, setCode] = useState(''); // RFID serial state
+    const [code, setCode] = useState('');
+    const [position, setPosition] = useState(''); // RFID serial state
     const [openCardReaderWindow, setOpenCardReaderWindow] = useState(false); // RFID reader modal state
 
-    const { aToken, addTeacher } = useContext(AdminContext);
+    const { aToken, addEmployee } = useContext(AdminContext);
 
     const handleOpenRFID = () => {
         setOpenCardReaderWindow(true);
@@ -43,12 +44,13 @@ const AddTeacher = () => {
         formData.append('password', password);
         formData.append('number', Number(number));
         formData.append('address', address);
+        formData.append('position', position);
         formData.append('code', code); // Include RFID serial in the form
     
         console.log("Form Data:", Object.fromEntries(formData)); // Log form data
     
         try {
-            const success = await addTeacher(formData);
+            const success = await addEmployee(formData);
             if (success) {
                 setDocImg(null);
                 setFirstName('');
@@ -58,6 +60,7 @@ const AddTeacher = () => {
                 setEmail('');
                 setAddress('');
                 setNumber('');
+                setPosition('');
                 setCode(''); // Reset RFID serial state
             }
         } catch (error) {
@@ -70,7 +73,7 @@ const AddTeacher = () => {
     return (
         <div className="flex justify-center items-center min-h-[90vh] w-full">
             <form onSubmit={onSubmitHandler} className="w-full max-w-5xl bg-white p-6 rounded-lg shadow-lg">
-                <h2 className="text-xl font-semibold mb-4 text-center">Add Teacher</h2>
+                <h2 className="text-xl font-semibold mb-4 text-center">Add Employee</h2>
 
                 <div className="flex flex-col items-center mb-4">
                     <label htmlFor="doc-img" className="cursor-pointer">
@@ -123,17 +126,21 @@ const AddTeacher = () => {
                         <input onChange={(e) => setNumber(e.target.value)} value={number} className="border rounded px-3 py-2 w-full" type="number" required />
                     </div>
                     <div className="flex flex-col">
+                        <label className="text-sm font-medium">Position</label>
+                        <input onChange={(e) => setPosition(e.target.value)} value={position} className="border rounded px-3 py-2 w-full" type="text" required />
+                    </div>
+                    <div className="flex flex-col">
                         <label className="text-sm font-medium">Address</label>
                         <input onChange={(e) => setAddress(e.target.value)} value={address} className="border rounded px-3 py-2 w-full" type="text" required />
                     </div>
                 </div>
 
                 <button type="submit" className="w-full bg-customRed px-4 py-2 mt-4 text-white rounded hover:bg-red-600">
-                    Add Teacher
+                    Add Employee
                 </button>
             </form>
         </div>
     );
 };
 
-export default AddTeacher;
+export default AddEmployee;

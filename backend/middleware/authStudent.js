@@ -1,19 +1,22 @@
-import jwt from 'jsonwebtoken'
+import jwt from 'jsonwebtoken';
 
 // student authentication middleware
-const authStudent = async (req, res, next) => {
-    const { dtoken } = req.headers
-    if (!dtoken) {
-        return res.json({ success: false, message: 'Not Authorized Login Again' })
+const authStudent = (req, res, next) => {
+    // Get token from the Authorization header (Bearer token)
+    const token = req.header('Authorization')?.replace('Bearer ', ''); // Assumes 'Bearer <token>' format
+
+    if (!token) {
+        return res.status(401).json({ success: false, message: 'Not authorized, login again' });
     }
-    try {
-        const token_decode = jwt.verify(dtoken, process.env.JWT_SECRET)
-        req.body.docId = token_decode.id
-        next()
-    } catch (error) {
-        console.log(error)
-        res.json({ success: false, message: error.message })
-    }
-}
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+        if (err) {
+            return res.status(401).json({ success: false, message: 'Invalid token' });
+        } else {
+            req.student = decoded;
+            next();
+        }
+    });
+};
 
 export default authStudent;
