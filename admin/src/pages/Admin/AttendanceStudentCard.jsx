@@ -1,5 +1,7 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { FaArrowLeft, FaArrowRight, FaClock, FaSearch } from 'react-icons/fa';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { FaCalendarAlt, FaClock, FaSearch, FaTimes } from 'react-icons/fa';
 import { useAdminContext } from '../../context/AdminContext';
 
 const AttendanceStudentCard = () => {
@@ -10,67 +12,8 @@ const AttendanceStudentCard = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [attendanceRecords, setAttendanceRecords] = useState([]);
     const [currentDate, setCurrentDate] = useState(new Date());
-
-    useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true);
-            setError(null);
-            try {
-                console.log('Fetching attendance records...');
-                const records = await fetchAttendanceRecords(currentDate);
-                console.log('Attendance records fetched:', records);
-                if (!records || !Array.isArray(records)) {
-                    console.error("fetchAttendanceRecords did not return an array:", records);
-                }
-
-                // Filter records to only include students
-                const studentRecords = records.filter(record => record.userType === 'Student');
-
-                console.log('Student records:', studentRecords);
-                setAttendanceRecords(studentRecords);
-            } catch (err) {
-                console.error('Error fetching attendance records:', err);
-                setError(err.message || 'Failed to fetch attendance records');
-                setAttendanceRecords([]);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        if (aToken) {
-            fetchData();
-        } else {
-            console.warn('aToken is missing. Skipping fetchData.');
-        }
-    }, [aToken, fetchAttendanceRecords, currentDate]);
-
-    const toggleView = useCallback((view) => {
-        setIsViewingTimeIn(view === 'timeIn');
-    }, [setIsViewingTimeIn]);
-
-    const handleSearch = useCallback((e) => {
-        setSearchTerm(e.target.value);
-    }, [setSearchTerm]);
-
-    const filteredAttendanceRecords = React.useMemo(() => {
-        const lowerSearchTerm = searchTerm.toLowerCase();
-        console.log('attendanceRecords before filtering:', attendanceRecords);
-
-        const filtered = attendanceRecords.filter(record => {
-            if (!record.user) {
-                console.warn(`User data missing for record: ${record._id}`);
-                return false;
-            }
-
-            const fullName = `${record.user.firstName} ${record.user.middleName || ''} ${record.user.lastName}`.toLowerCase();
-            const include = fullName.includes(lowerSearchTerm);
-            console.log(`Record for ${fullName} includes search term ${lowerSearchTerm}: ${include}`);
-            return include;
-        });
-
-        console.log('Filtered attendance records:', filtered);
-        return filtered;
-    }, [attendanceRecords, searchTerm]);
+    const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+    const [filteredAttendanceRecords, setFilteredAttendanceRecords] = useState([]);
 
     const formatDate = useCallback((date) => {
         if (!date) return 'N/A';
@@ -82,31 +25,69 @@ const AttendanceStudentCard = () => {
         return new Date(date).toLocaleTimeString();
     }, []);
 
-    const goToPreviousDay = useCallback(() => {
-        setCurrentDate(prevDate => {
-            const newDate = new Date(prevDate);
-            newDate.setDate(newDate.getDate() - 1);
-            return newDate;
+    const fetchData = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const records = await fetchAttendanceRecords(currentDate);
+            if (!records || !Array.isArray(records)) {
+                console.error("fetchAttendanceRecords did not return an array:", records);
+            }
+
+            // Filter records to only include students
+            const studentRecords = records.filter(record => record.userType === 'Student');
+
+            setAttendanceRecords(studentRecords);
+        } catch (err) {
+            console.error('Error fetching attendance records:', err);
+            setError(err.message || 'Failed to fetch attendance records');
+            setAttendanceRecords([]);
+        } finally {
+            setLoading(false);
+        }
+    }, [aToken, fetchAttendanceRecords, currentDate]);
+
+    useEffect(() => {
+        if (aToken) {
+            fetchData();
+        } else {
+            console.warn('aToken is missing. Skipping fetchData.');
+        }
+    }, [aToken, fetchData]);
+
+    useEffect(() => {
+        const lowerSearchTerm = searchTerm.toLowerCase();
+
+        const filtered = attendanceRecords.filter(record => {
+            if (!record.user) {
+                console.warn(`User data missing for record: ${record._id}`);
+                return false;
+            }
+
+            const fullName = `${record.user.firstName} ${record.user.middleName || ''} ${record.user.lastName}`.toLowerCase();
+            const include = fullName.includes(lowerSearchTerm);
+            return include;
         });
-    }, []);
 
-    const goToNextDay = useCallback(() => {
-        setCurrentDate(prevDate => {
-            const newDate = new Date(prevDate);
-            newDate.setDate(newDate.getDate() + 1);
-            return newDate;
-        });
-    }, []);
+        setFilteredAttendanceRecords(filtered);
+    }, [attendanceRecords, searchTerm]);
 
-    const userRows = React.useMemo(() => {
-        console.log('filteredAttendanceRecords before mapping:', filteredAttendanceRecords);
+    const handleSearch = useCallback((e) => {
+        setSearchTerm(e.target.value);
+    }, [setSearchTerm]);
 
+    const handleDateChange = useCallback((date) => {
+        setCurrentDate(date);
+        setIsCalendarOpen(false);
+    }, [setCurrentDate]);
+
+    const toggleCalendar = useCallback(() => {
+        setIsCalendarOpen(prev => !prev);
+    }, [setIsCalendarOpen]);
+
+    const timeInRows = useMemo(() => {
         const rows = filteredAttendanceRecords
-            .filter(record => {
-                const eventTypeMatches = isViewingTimeIn ? record.eventType === 'sign-in' : record.eventType === 'sign-out';
-                console.log(`Record ${record._id} eventType matches view: ${eventTypeMatches}, eventType: ${record.eventType}, isViewingTimeIn: ${isViewingTimeIn}`);
-                return eventTypeMatches;
-            })
+            .filter(record => record.eventType === 'sign-in')
             .map((record) => {
                 if (!record.user) {
                     console.warn(`User data missing for record: ${record._id}`);
@@ -124,9 +105,37 @@ const AttendanceStudentCard = () => {
                 );
             }).filter(row => row !== null);
 
-        console.log('User rows:', rows);
         return rows;
-    }, [filteredAttendanceRecords, formatDate, formatTime, isViewingTimeIn]);
+    }, [filteredAttendanceRecords, formatDate, formatTime]);
+
+    const timeOutRows = useMemo(() => {
+        const rows = filteredAttendanceRecords
+            .filter(record => record.eventType === 'sign-out')
+            .map((record) => {
+                if (!record.user) {
+                    console.warn(`User data missing for record: ${record._id}`);
+                    return null;
+                }
+
+                return (
+                    <tr key={record._id} className="border-b hover:bg-gray-50">
+                        <td className="px-4 py-2">{record.user.studentNumber}</td>
+                        <td className="px-4 py-2">{`${record.user.firstName} ${record.user.middleName || ''} ${record.user.lastName}`}</td>
+                        <td className="px-4 py-2">Student</td>
+                        <td className="px-4 py-2">{formatDate(record.timestamp)}</td>
+                        <td className="px-4 py-2">{formatTime(record.timestamp)}</td>
+                    </tr>
+                );
+            }).filter(row => row !== null);
+
+        return rows;
+    }, [filteredAttendanceRecords, formatDate, formatTime]);
+
+    const userRows = isViewingTimeIn ? timeInRows : timeOutRows;
+
+    const toggleView = useCallback((view) => {
+        setIsViewingTimeIn(view === 'timeIn');
+    }, [setIsViewingTimeIn]);
 
     if (loading) {
         return <div className="flex justify-center items-center h-full">Loading...</div>;
@@ -172,18 +181,29 @@ const AttendanceStudentCard = () => {
             {/* Date Navigation */}
             <div className="flex justify-center items-center mb-4">
                 <button
-                    className="bg-gray-200 hover:bg-gray-300 rounded-full p-2 mr-2"
-                    onClick={goToPreviousDay}
+                    className="bg-gray-200 hover:bg-gray-300 rounded-full p-2"
+                    onClick={toggleCalendar}
                 >
-                    <FaArrowLeft />
+                    <FaCalendarAlt />
                 </button>
-                <span className="font-semibold">{currentDate.toLocaleDateString()}</span>
-                <button
-                    className="bg-gray-200 hover:bg-gray-300 rounded-full p-2 ml-2"
-                    onClick={goToNextDay}
-                >
-                    <FaArrowRight />
-                </button>
+                <span className="font-semibold mx-4">{currentDate.toLocaleDateString()}</span>
+                {isCalendarOpen && (
+                    <div className="absolute top-20 left-1/2 transform -translate-x-1/2 bg-white rounded-lg shadow-lg p-4 z-10">
+                        <div className="flex justify-end">
+                            <button
+                                className="text-gray-500 hover:text-gray-700"
+                                onClick={toggleCalendar}
+                            >
+                                <FaTimes />
+                            </button>
+                        </div>
+                        <DatePicker
+                            selected={currentDate}
+                            onChange={handleDateChange}
+                            inline
+                        />
+                    </div>
+                )}
             </div>
 
             <div className="overflow-x-auto">

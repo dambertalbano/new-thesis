@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { FaArrowLeft, FaArrowRight, FaClock, FaSearch } from 'react-icons/fa';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { FaCalendarAlt, FaClock, FaSearch, FaTimes } from 'react-icons/fa';
 import { useAdminContext } from '../../context/AdminContext';
 
 const AllUserAttendanceCard = () => {
@@ -11,6 +13,7 @@ const AllUserAttendanceCard = () => {
     const [attendanceRecords, setAttendanceRecords] = useState([]);
     const [currentDate, setCurrentDate] = useState(new Date());
     const [userListsLoading, setUserListsLoading] = useState(true);
+    const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -58,25 +61,17 @@ const AllUserAttendanceCard = () => {
         return new Date(date).toLocaleTimeString();
     }, []);
 
-    const goToPreviousDay = useCallback(() => {
-        setCurrentDate(prevDate => {
-            const newDate = new Date(prevDate);
-            newDate.setDate(newDate.getDate() - 1);
-            return newDate;
-        });
-    }, []);
+    const handleDateChange = useCallback((date) => {
+        setCurrentDate(date);
+        setIsCalendarOpen(false);
+    }, [setCurrentDate, setIsCalendarOpen]);
 
-    const goToNextDay = useCallback(() => {
-        setCurrentDate(prevDate => {
-            const newDate = new Date(prevDate);
-            newDate.setDate(newDate.getDate() + 1);
-            return newDate;
-        });
-    }, []);
+    const toggleCalendar = useCallback(() => {
+        setIsCalendarOpen(prev => !prev);
+    }, [setIsCalendarOpen]);
 
     const userRows = useMemo(() => {
         if (!Array.isArray(attendanceRecords)) {
-            console.warn("attendanceRecords is not an array:", attendanceRecords);
             return [];
         }
 
@@ -142,20 +137,32 @@ const AllUserAttendanceCard = () => {
                 </div>
             </div>
 
+            {/* Date Navigation */}
             <div className="flex justify-center items-center mb-4">
                 <button
-                    className="bg-gray-200 hover:bg-gray-300 rounded-full p-2 mr-2"
-                    onClick={goToPreviousDay}
+                    className="bg-gray-200 hover:bg-gray-300 rounded-full p-2"
+                    onClick={toggleCalendar}
                 >
-                    <FaArrowLeft />
+                    <FaCalendarAlt />
                 </button>
-                <span className="font-semibold">{currentDate.toLocaleDateString()}</span>
-                <button
-                    className="bg-gray-200 hover:bg-gray-300 rounded-full p-2 ml-2"
-                    onClick={goToNextDay}
-                >
-                    <FaArrowRight />
-                </button>
+                <span className="font-semibold mx-4">{currentDate.toLocaleDateString()}</span>
+                {isCalendarOpen && (
+                    <div className="absolute top-20 left-1/2 transform -translate-x-1/2 bg-white rounded-lg shadow-lg p-4 z-10">
+                        <div className="flex justify-end">
+                            <button
+                                className="text-gray-500 hover:text-gray-700"
+                                onClick={toggleCalendar}
+                            >
+                                <FaTimes />
+                            </button>
+                        </div>
+                        <DatePicker
+                            selected={currentDate}
+                            onChange={handleDateChange}
+                            inline
+                        />
+                    </div>
+                )}
             </div>
 
             <div className="overflow-x-auto">

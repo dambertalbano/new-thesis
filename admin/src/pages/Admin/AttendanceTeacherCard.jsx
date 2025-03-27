@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { FaArrowLeft, FaArrowRight, FaClock, FaSearch } from 'react-icons/fa';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { FaCalendarAlt, FaClock, FaSearch, FaTimes } from 'react-icons/fa';
 import { useAdminContext } from '../../context/AdminContext';
 
 const AttendanceTeacherCard = () => {
@@ -10,6 +12,7 @@ const AttendanceTeacherCard = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [attendanceRecords, setAttendanceRecords] = useState([]);
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -18,7 +21,6 @@ const AttendanceTeacherCard = () => {
             try {
                 const records = await fetchAttendanceRecords(currentDate);
                 if (!records || !Array.isArray(records)) {
-                    console.error("fetchAttendanceRecords did not return an array:", records);
                 }
 
                 // Filter records to only include teachers
@@ -26,7 +28,6 @@ const AttendanceTeacherCard = () => {
 
                 setAttendanceRecords(teacherRecords);
             } catch (err) {
-                console.error('Error fetching attendance records:', err);
                 setError(err.message || 'Failed to fetch attendance records');
                 setAttendanceRecords([]);
             } finally {
@@ -37,7 +38,6 @@ const AttendanceTeacherCard = () => {
         if (aToken) {
             fetchData();
         } else {
-            console.warn('aToken is missing. Skipping fetchData.');
         }
     }, [aToken, fetchAttendanceRecords, currentDate]);
 
@@ -54,7 +54,6 @@ const AttendanceTeacherCard = () => {
 
         const filtered = attendanceRecords.filter(record => {
             if (!record.user) {
-                console.warn(`User data missing for record: ${record._id}`);
                 return false;
             }
 
@@ -75,21 +74,14 @@ const AttendanceTeacherCard = () => {
         return new Date(date).toLocaleTimeString();
     }, []);
 
-    const goToPreviousDay = useCallback(() => {
-        setCurrentDate(prevDate => {
-            const newDate = new Date(prevDate);
-            newDate.setDate(newDate.getDate() - 1);
-            return newDate;
-        });
-    }, []);
+    const handleDateChange = useCallback((date) => {
+        setCurrentDate(date);
+        setIsCalendarOpen(false);
+    }, [setCurrentDate, setIsCalendarOpen]);
 
-    const goToNextDay = useCallback(() => {
-        setCurrentDate(prevDate => {
-            const newDate = new Date(prevDate);
-            newDate.setDate(newDate.getDate() + 1);
-            return newDate;
-        });
-    }, []);
+    const toggleCalendar = useCallback(() => {
+        setIsCalendarOpen(prev => !prev);
+    }, [setIsCalendarOpen]);
 
     const userRows = React.useMemo(() => {
         const rows = filteredAttendanceRecords
@@ -99,7 +91,6 @@ const AttendanceTeacherCard = () => {
             })
             .map((record) => {
                 if (!record.user) {
-                    console.warn(`User data missing for record: ${record._id}`);
                     return null;
                 }
 
@@ -160,18 +151,29 @@ const AttendanceTeacherCard = () => {
             {/* Date Navigation */}
             <div className="flex justify-center items-center mb-4">
                 <button
-                    className="bg-gray-200 hover:bg-gray-300 rounded-full p-2 mr-2"
-                    onClick={goToPreviousDay}
+                    className="bg-gray-200 hover:bg-gray-300 rounded-full p-2"
+                    onClick={toggleCalendar}
                 >
-                    <FaArrowLeft />
+                    <FaCalendarAlt />
                 </button>
-                <span className="font-semibold">{currentDate.toLocaleDateString()}</span>
-                <button
-                    className="bg-gray-200 hover:bg-gray-300 rounded-full p-2 ml-2"
-                    onClick={goToNextDay}
-                >
-                    <FaArrowRight />
-                </button>
+                <span className="font-semibold mx-4">{currentDate.toLocaleDateString()}</span>
+                {isCalendarOpen && (
+                    <div className="absolute top-20 left-1/2 transform -translate-x-1/2 bg-white rounded-lg shadow-lg p-4 z-10">
+                        <div className="flex justify-end">
+                            <button
+                                className="text-gray-500 hover:text-gray-700"
+                                onClick={toggleCalendar}
+                            >
+                                <FaTimes />
+                            </button>
+                        </div>
+                        <DatePicker
+                            selected={currentDate}
+                            onChange={handleDateChange}
+                            inline
+                        />
+                    </div>
+                )}
             </div>
 
             <div className="overflow-x-auto">
