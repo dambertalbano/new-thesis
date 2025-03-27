@@ -1,4 +1,5 @@
 import React, { useContext, useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 import { toast } from 'react-toastify';
 import { RFIDReaderInput } from 'rfid-reader-input';
 import { assets } from '../../assets/assets';
@@ -18,6 +19,7 @@ const AddEmployee = () => {
     const [openCardReaderWindow, setOpenCardReaderWindow] = useState(false); // RFID reader modal state
 
     const { aToken, addEmployee } = useContext(AdminContext);
+    const navigate = useNavigate(); // Initialize useNavigate
 
     const handleOpenRFID = () => {
         setOpenCardReaderWindow(true);
@@ -29,13 +31,13 @@ const AddEmployee = () => {
 
     const onSubmitHandler = async (event) => {
         event.preventDefault();
-    
+
         if (!docImg) {
             return toast.error('Image Not Selected');
         }
-    
+
         const formData = new FormData();
-    
+
         formData.append('image', docImg);
         formData.append('firstName', firstName);
         formData.append('middleName', middleName);
@@ -46,9 +48,9 @@ const AddEmployee = () => {
         formData.append('address', address);
         formData.append('position', position);
         formData.append('code', code); // Include RFID serial in the form
-    
+
         console.log("Form Data:", Object.fromEntries(formData)); // Log form data
-    
+
         try {
             const success = await addEmployee(formData);
             if (success) {
@@ -62,6 +64,7 @@ const AddEmployee = () => {
                 setNumber('');
                 setPosition('');
                 setCode(''); // Reset RFID serial state
+                navigate('/all-users'); // Redirect to AllUsers page
             }
         } catch (error) {
             console.error("Error Response:", error.response); // Log error response
