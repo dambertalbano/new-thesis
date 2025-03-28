@@ -1,4 +1,3 @@
-// filepath: backend/models/attendanceModel.js
 import mongoose from 'mongoose';
 
 const attendanceSchema = new mongoose.Schema({
