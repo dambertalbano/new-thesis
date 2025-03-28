@@ -4,7 +4,6 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import EditCard from './components/EditCard';
 import Navbar from './components/Navbar';
-import Sidebar from './components/Sidebar';
 import UserCard from './components/UserCard';
 import { AdminContext } from './context/AdminContext';
 import { EmployeeContext } from './context/EmployeeContext';
@@ -93,7 +92,7 @@ const App = () => {
                 <div className='bg-[#F8F9FD]'>
                     <Navbar onLogout={handleLogout} />
                     <div className='flex items-start'>
-                        <Sidebar />
+                        
                         <Routes>
                             <Route path='/admin-dashboard' element={<Dashboard />} />
                             <Route path='/teacher-dashboard' element={<TeacherDashboard />} />

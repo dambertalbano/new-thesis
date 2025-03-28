@@ -1,138 +1,122 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { FaEdit, FaSearch, FaTrash } from 'react-icons/fa';
+import { Pencil, Trash2, Search, Filter } from 'lucide-react';
 import ReactPaginate from 'react-paginate';
 import { AdminContext } from '../../context/AdminContext';
+import EditCard from '../../components/EditCard';
 
 const TeachersList = () => {
-    const { teachers, aToken, getAllTeachers, updateTeacher, deleteTeacher } = useContext(AdminContext);
-
-    const [isEditing, setIsEditing] = useState(false);
-    const [currentTeacher, setCurrentTeacher] = useState(null);
+    const { teachers, aToken, getAllTeachers, deleteTeacher } = useContext(AdminContext);
     const [searchTerm, setSearchTerm] = useState('');
+    const [filter, setFilter] = useState('all');
     const [currentPage, setCurrentPage] = useState(0);
+    const [isEditOpen, setIsEditOpen] = useState(false); // State to control edit window
+    const [selectedTeacher, setSelectedTeacher] = useState(null); // State for selected teacher
     const teachersPerPage = 10;
 
     useEffect(() => {
-        if (aToken) {
-            getAllTeachers();
-        }
+        document.title = "Teacher List - Admin Panel";
+    }, []);
+
+    useEffect(() => {
+        if (aToken) getAllTeachers();
     }, [aToken, getAllTeachers]);
 
-    const handleEditClick = (teacher) => {
-        if (!teacher._id) {
-            console.error("Teacher ID is missing for the selected teacher.");
-            return;
-        }
-        setCurrentTeacher(teacher);
-        setIsEditing(true);
+    const handleSearch = (e) => setSearchTerm(e.target.value);
+    const handleFilterChange = (e) => setFilter(e.target.value);
+
+    const handleEdit = (teacher) => {
+        setSelectedTeacher(teacher); // Set the selected teacher
+        setIsEditOpen(true); // Open the edit window
     };
 
-    const handleSave = async () => {
-        if (!currentTeacher._id) {
-            console.error("Teacher ID is missing for the current teacher.");
-            return;
-        }
-        console.log("Saving teacher with ID:", currentTeacher._id);
-        const success = await updateTeacher(currentTeacher);
-        if (success) {
-            setIsEditing(false);
-            setCurrentTeacher(null);
-        }
+    const handleCloseEdit = () => {
+        setIsEditOpen(false); // Close the edit window
+        setSelectedTeacher(null); // Clear the selected teacher
     };
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        setCurrentTeacher((prev) => ({
-            ...prev,
-            [name]: value,
-        }));
+    const handleDelete = (teacherId) => {
+        deleteTeacher(teacherId); // Ensure this function is implemented in AdminContext
     };
 
-    const handleDelete = async (teacherId) => {
-        try {
-            await deleteTeacher(teacherId);
-            getAllTeachers();
-        } catch (error) {
-            console.error("Failed to delete teacher:", error.message);
-        }
-    };
-
-    const handleSearch = (e) => {
-        setSearchTerm(e.target.value);
-    };
-
-    const filteredTeachers = teachers?.filter((teacher) =>
-        `${teacher?.firstName} ${teacher?.middleName} ${teacher?.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        teacher?.email?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredTeachers = teachers?.filter((teacher) => {
+        const fullName = `${teacher?.firstName} ${teacher?.middleName} ${teacher?.lastName}`.toLowerCase();
+        const email = teacher?.email?.toLowerCase();
+        const matchesSearch = fullName.includes(searchTerm.toLowerCase()) || email.includes(searchTerm.toLowerCase());
+        if (filter === 'all') return matchesSearch;
+        if (filter === 'withEmail') return matchesSearch && teacher?.email;
+        if (filter === 'noEmail') return matchesSearch && !teacher?.email;
+        return matchesSearch;
+    });
 
     const pageCount = Math.ceil((filteredTeachers?.length || 0) / teachersPerPage);
     const offset = currentPage * teachersPerPage;
     const currentTeachers = filteredTeachers?.slice(offset, offset + teachersPerPage) || [];
 
-    const handlePageClick = ({ selected }) => {
-        setCurrentPage(selected);
-    };
+    const handlePageClick = ({ selected }) => setCurrentPage(selected);
 
     return (
-        <div className="flex flex-col h-full w-full p-5">
-            <h1 className="text-xl font-bold mb-4">TEACHER LIST</h1>
+        <div className="flex flex-col w-full p-6 mt-16 bg-white shadow-md rounded-2xl">
+            <h1 className="text-3xl font-bold mb-6 text-gray-800">Teacher List</h1>
 
-            <div className="flex justify-between items-center mb-4">
-                <div className="relative">
+            <div className="flex flex-wrap md:flex-nowrap justify-between items-center gap-4 mb-6">
+                <div className="relative w-full md:w-1/2">
                     <input
                         type="text"
-                        className="border rounded px-4 py-2 w-64"
+                        className="w-full p-3 border rounded-xl pl-10 focus:ring-2 focus:ring-blue-400"
                         placeholder="Search by name or email"
                         value={searchTerm}
                         onChange={handleSearch}
                     />
-                    <FaSearch className="absolute top-3 right-3 text-gray-400" />
+                    <Search className="absolute top-3 left-3 text-gray-400" size={20} />
+                </div>
+                <div className="relative w-full md:w-1/4">
+                    <select
+                        className="w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-400"
+                        value={filter}
+                        onChange={handleFilterChange}
+                    >
+                        <option value="all">All</option>
+                        <option value="withEmail">With Email</option>
+                        <option value="noEmail">No Email</option>
+                    </select>
+                    <Filter className="absolute top-3 right-3 text-gray-400" size={20} />
                 </div>
             </div>
 
-            <div className="flex-grow overflow-auto">
-                <table className="min-w-full table-auto border-collapse">
+            <div className="overflow-x-auto rounded-lg shadow-sm">
+                <table className="w-full border-collapse bg-white rounded-lg overflow-hidden">
                     <thead>
-                        <tr className="border-b text-center">
-                            <th className="px-4 py-2">Image</th>
-                            <th className="px-4 py-2">Name</th>
-                            <th className="px-4 py-2">Email</th>
-                            <th className="px-4 py-2">Number</th>
-                            <th className="px-4 py-2">Address</th>
-                            <th className="px-4 py-2">Subjects</th>
-                            <th className="px-4 py-2 text-center">Actions</th>
+                        <tr className="bg-gray-200 text-gray-700 text-left">
+                            <th className="p-4">Image</th>
+                            <th className="p-4">Name</th>
+                            <th className="p-4">Email</th>
+                            <th className="p-4">Number</th>
+                            <th className="p-4">Address</th>
+                            <th className="p-4 text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {currentTeachers?.map((item, index) => (
-                            <tr key={index} className="border-b hover:bg-gray-100 text-center">
-                                <td className="px-4 py-2">
-                                    <img
-                                        className="w-16 h-16 object-cover rounded-full mx-auto"
-                                        src={item?.image ?? '/default-image.png'}
-                                        alt="Teacher"
-                                    />
+                        {currentTeachers.map((item, index) => (
+                            <tr key={index} className="border-b hover:bg-gray-100 text-left">
+                                <td className="p-4">
+                                    <img className="w-12 h-12 object-cover rounded-full" src={item?.image ?? '/default-image.png'} alt="Teacher" />
                                 </td>
-                                <td className="px-4 py-2">{`${item?.firstName ?? ''} ${item?.middleName ? item.middleName.charAt(0) + '.' : ''} ${item?.lastName ?? ''}`}</td>
-                                <td className="px-4 py-2">{item?.email ?? 'No Email'}</td>
-                                <td className="px-4 py-2">{item?.number ?? 'No Number'}</td>
-                                <td className="px-4 py-2">{item?.address ?? 'No Address'}</td>
-                                <td className="px-4 py-2">{item?.subjects?.join(', ') ?? 'No Subjects'}</td>
-                                <td className="px-4 py-2 flex justify-center space-x-2">
+                                <td className="p-4">{`${item?.firstName ?? ''} ${item?.middleName ? item.middleName.charAt(0) + '.' : ''} ${item?.lastName ?? ''}`}</td>
+                                <td className="p-4">{item?.email ?? 'No Email'}</td>
+                                <td className="p-4">{item?.number ?? 'No Number'}</td>
+                                <td className="p-4">{item?.address ?? 'No Address'}</td>
+                                <td className="p-4 flex justify-center gap-3">
                                     <button
-                                        className="px-4 py-2 bg-blue-500 text-white rounded flex items-center"
-                                        onClick={() => handleEditClick(item)}
-                                        title="Edit"
+                                        className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                                        onClick={() => handleEdit(item)}
                                     >
-                                        <FaEdit />
+                                        <Pencil size={18} />
                                     </button>
                                     <button
-                                        className="px-4 py-2 bg-red-500 text-white rounded flex items-center"
-                                        onClick={() => handleDelete(item._id)}
-                                        title="Delete"
+                                        className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                                        onClick={() => handleDelete(item.id)}
                                     >
-                                        <FaTrash />
+                                        <Trash2 size={18} />
                                     </button>
                                 </td>
                             </tr>
@@ -142,104 +126,22 @@ const TeachersList = () => {
             </div>
 
             <ReactPaginate
-                previousLabel={'< Previous'}
+                previousLabel={'< Prev'}
                 nextLabel={'Next >'}
                 pageCount={pageCount}
                 onPageChange={handlePageClick}
-                containerClassName={'flex items-center justify-center space-x-4 mt-4'}
-                previousLinkClassName={'border p-2 rounded text-gray-600 hover:bg-gray-200 cursor-pointer'}
-                nextLinkClassName={'border p-2 rounded text-gray-600 hover:bg-gray-200 cursor-pointer'}
+                containerClassName={'flex justify-center mt-6 space-x-3'}
+                previousLinkClassName={'px-4 py-2 border rounded-lg text-gray-600 hover:bg-gray-200'}
+                nextLinkClassName={'px-4 py-2 border rounded-lg text-gray-600 hover:bg-gray-200'}
                 disabledClassName={'opacity-50 cursor-not-allowed'}
-                activeClassName={'font-bold'}
+                activeClassName={'bg-blue-500 text-white px-4 py-2 rounded-lg'}
             />
 
-            {isEditing && currentTeacher && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
-                    <div className="bg-white p-6 rounded shadow-lg w-1/3">
-                        <h2 className="text-2xl font-bold mb-4">Edit Teacher</h2>
-                        <div className="mt-4">
-                            <label className="block text-sm font-medium text-gray-700">First Name</label>
-                            <input
-                                className="border w-full p-2 rounded mt-1"
-                                name="firstName"
-                                value={currentTeacher?.firstName || ''}
-                                onChange={handleChange}
-                            />
-                        </div>
-                        <div className="mt-4">
-                            <label className="block text-sm font-medium text-gray-700">Middle Name</label>
-                            <input
-                                className="border w-full p-2 rounded mt-1"
-                                name="middleName"
-                                value={currentTeacher?.middleName || ''}
-                                onChange={handleChange}
-                            />
-                        </div>
-                        <div className="mt-4">
-                            <label className="block text-sm font-medium text-gray-700">Last Name</label>
-                            <input
-                                className="border w-full p-2 rounded mt-1"
-                                name="lastName"
-                                value={currentTeacher?.lastName || ''}
-                                onChange={handleChange}
-                            />
-                        </div>
-                        <div className="mt-4">
-                            <label className="block text-sm font-medium text-gray-700">Email</label>
-                            <input
-                                className="border w-full p-2 rounded mt-1"
-                                name="email"
-                                value={currentTeacher?.email || ''}
-                                onChange={handleChange}
-                            />
-                        </div>
-                        <div className="mt-4">
-                            <label className="block text-sm font-medium text-gray-700">Number</label>
-                            <input
-                                className="border w-full p-2 rounded mt-1"
-                                name="number"
-                                value={currentTeacher?.number || ''}
-                                onChange={handleChange}
-                            />
-                        </div>
-                        <div className="mt-4">
-                            <label className="block text-sm font-medium text-gray-700">Address</label>
-                            <input
-                                className="border w-full p-2 rounded mt-1"
-                                name="address"
-                                value={currentTeacher?.address || ''}
-                                onChange={handleChange}
-                            />
-                        </div>
-                        <div className="mt-4">
-                            <label className="block text-sm font-medium text-gray-700">Subjects (comma-separated)</label>
-                            <input
-                                className="border w-full p-2 rounded mt-1"
-                                name="subjects"
-                                value={currentTeacher?.subjects?.join(', ') || ''}
-                                onChange={(e) => {
-                                    const value = e.target.value;
-                                    setCurrentTeacher(prev => ({
-                                        ...prev,
-                                        subjects: value.split(',').map(s => s.trim())
-                                    }));
-                                }}
-                            />
-                        </div>
-                        <div className="mt-4 flex justify-end space-x-2">
-                            <button
-                                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition duration-300"
-                                onClick={() => setIsEditing(false)}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition duration-300"
-                                onClick={handleSave}
-                            >
-                                Save
-                            </button>
-                        </div>
+            {/* Render EditCard Component */}
+            {isEditOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                    <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+                        <EditCard teacher={selectedTeacher} onClose={handleCloseEdit} />
                     </div>
                 </div>
             )}
