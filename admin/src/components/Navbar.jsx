@@ -1,12 +1,12 @@
-import React, { useState, useContext, useEffect } from 'react';
+import '@fontsource/inter';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useContext, useEffect, useState } from 'react';
+import { FiMenu, FiX } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { assets } from '../assets/assets';
 import { AdminContext } from '../context/AdminContext';
 import { TeacherContext } from '../context/TeacherContext';
-import { AnimatePresence, motion } from 'framer-motion';
-import { FiMenu, FiX } from 'react-icons/fi';
-import { ChevronDown, ChevronUp } from 'lucide-react';
-import '@fontsource/inter';
 
 const Navbar = () => {
   const { dToken, setDToken } = useContext(TeacherContext);
@@ -52,23 +52,29 @@ const Navbar = () => {
 
   const navMenus = [
     {
-      title: 'Attendance',
-      path: '/attendance',
-      subMenu: [
-        { name: 'View Attendance', path: '/attendance' },
-        { name: 'Take Attendance', path: '/take-attendance' },
-      ],
-    },
-    {
       title: 'Add User',
       path: '/add-users',
       subMenu: [
         { name: 'Add Student', path: '/add-student'},
         { name: 'Add Teacher', path: '/add-teacher' },
-        { name: 'Add Administrator', path: '/add-administrator' },
-        { name: 'Add Utility', path: '/add-utility' }
-      ], 
-    }
+        { name: 'Add Employee', path: '/add-employee' },],
+    },
+    {
+      title: 'User List',
+      path: '/all-users',
+      subMenu: [
+        { name: 'Student', path: '/student-list' },
+        { name: 'Teacher', path: '/teacher-list' },
+        { name: 'Employee', path: '/employee-list' },
+      ],
+    },
+    {
+      title: 'Attendance',
+      path: '/attendance',
+      subMenu: [
+        { name: 'View Attendance', path: '/attendance' },
+      ],
+    },
   ];
 
   const toggleDropdown = (index) => {
