@@ -47,9 +47,9 @@ export const AddUtilityCard = () => <UserCard title="Add Utility" navigateTo="/a
 export const AddEmployeeCard = () => <UserCard title="Add Employee" navigateTo="/add-employee" />;
 
 // All Users
-export const StudentCard = () => <UserCard title="Students" navigateTo="/student-list" />;
-export const TeacherCard = () => <UserCard title="Teachers" navigateTo="/teacher-list" />;
-export const EmployeeCard = () => <UserCard title="Employees" navigateTo="/employee-list" />;
+export const StudentCard = () => <UserCard title="List of Students" navigateTo="/student-list" />;
+export const TeacherCard = () => <UserCard title="List of Teachers" navigateTo="/teacher-list" />;
+export const EmployeeCard = () => <UserCard title="List of Employees" navigateTo="/employee-list" />;
 
 // Card Container Component with Responsive Grid and Centering
 const CardContainer = () => {
