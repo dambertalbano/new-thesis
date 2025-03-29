@@ -3,6 +3,7 @@ import { FiInfo } from "react-icons/fi";
 import blankImage from "../../assets/blank-image.webp";
 import { AdminContext } from "../../context/AdminContext";
 import { Loader } from "lucide-react";
+import { motion } from "framer-motion";
 
 const RFID_Scan = () => {
     const { getUserByCode, adminSignIn, adminSignOut } = useContext(AdminContext);
@@ -82,7 +83,7 @@ const RFID_Scan = () => {
                 );
 
                 if (sameDaySignIn && sameDaySignOut && signOutDate > signInDate) {
-                    setError('Sign-in and sign-out already recorded for today.');
+                    setError('Attendance was already recorded for today.');
                     setLoading(false);
                     return;
                 }
@@ -154,39 +155,42 @@ const RFID_Scan = () => {
     };
 
     return (
-        <div className="flex justify-center items-center min-h-screen w-full bg-gray-100 p-4">
-            <div className="bg-white p-8 rounded-xl shadow-lg text-center max-w-2xl w-full">
-                {!loading && (
-                    <div className="flex items-center justify-center mb-4 text-customRed">
-                        <FiInfo className="w-8 h-8" />
-                        <h2 className="text-3xl font-semibold ml-2">User Information</h2>
+        <motion.div
+            initial={{ opacity: 0, scale: 0.9 }} 
+            animate={{ opacity: 1, scale: 1, transition: { duration: 0.5, ease: "easeOut" } }} 
+            className="flex justify-center items-center min-h-screen w-full bg-gray-100 p-4">
+                <div className="bg-white p-8 rounded-xl shadow-lg text-center max-w-2xl w-full">
+                    {!loading && (
+                        <div className="flex items-center justify-center mb-4 text-customRed">
+                            <FiInfo className="w-8 h-8" />
+                            <h2 className="text-3xl font-bold ml-2">User Information</h2>
+                        </div>
+                    )}
+                    {loading ? (
+                        <div className="flex justify-center items-center">
+                        <Loader className="w-5 h-5 text-customRed animate-spin mr-2" />
+                        <span className="text-customRed">Scanning ...</span>
                     </div>
-                )}
-                {loading ? (
-                    <div className="flex justify-center items-center">
-                    <Loader className="w-5 h-5 text-customRed animate-spin mr-2" />
-                    <span className="text-customRed">Scanning ...</span>
-                  </div>
-                ) : error ? (
-                    <>
-                        <p className="text-red-500 text-center">{error}</p>
-                        {userInfo ? (
-                            userInfo.position !== 'Teacher' ? (
-                                <UserInfoDisplay userInfo={userInfo} formatName={formatName} />
-                            ) : null
-                        ) : (
-                            <BlankUserInfo />
-                        )}
-                    </>
-                ) : userInfo ? (
-                    userInfo.position !== 'Teacher' ? (
-                        <UserInfoDisplay userInfo={userInfo} formatName={formatName} />
-                    ) : null
-                ) : (
-                    <BlankUserInfo />
-                )}
-            </div>
-        </div>
+                    ) : error ? (
+                        <>
+                            <p className="text-red-500 text-center">{error}</p>
+                            {userInfo ? (
+                                userInfo.position !== 'Teacher' ? (
+                                    <UserInfoDisplay userInfo={userInfo} formatName={formatName} />
+                                ) : null
+                            ) : (
+                                <BlankUserInfo />
+                            )}
+                        </>
+                    ) : userInfo ? (
+                        userInfo.position !== 'Teacher' ? (
+                            <UserInfoDisplay userInfo={userInfo} formatName={formatName} />
+                        ) : null
+                    ) : (
+                        <BlankUserInfo />
+                    )}
+                </div>
+        </motion.div>
     );
 };
 
