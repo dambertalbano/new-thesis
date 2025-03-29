@@ -84,6 +84,11 @@ const AllUserAttendanceCard = () => {
             const user = record.user;
             const role = record.userType;
 
+            // Check if user is null
+            if (!user) {
+                return null; // Or return a placeholder row
+            }
+
             return (
                 <tr key={record._id} className="border-b hover:bg-gray-50">
                     <td className="px-4 py-2">{user.studentNumber || user._id}</td>
@@ -94,7 +99,7 @@ const AllUserAttendanceCard = () => {
                 </tr>
             );
         });
-    }, [attendanceRecords, formatName, formatDate, formatTime, isViewingTimeIn]); // Add isViewingTimeIn to dependencies
+    }, [attendanceRecords, formatName, formatDate, formatTime, isViewingTimeIn]);
 
     if (loading) {
         return <div className="flex justify-center items-center h-full">Loading...</div>;

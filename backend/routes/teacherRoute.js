@@ -1,5 +1,5 @@
 import express from 'express';
-import { loginTeacher, teacherProfile, updateTeacherProfile } from '../controllers/teacherController.js';
+import { getStudentsByTeacher, loginTeacher, teacherList, teacherProfile, updateTeacherProfile } from '../controllers/teacherController.js'; // Import all controller functions
 import authTeacher from '../middleware/authTeacher.js';
 import teacherModel from '../models/teacherModel.js';
 
@@ -7,7 +7,8 @@ const teacherRouter = express.Router();
 
 teacherRouter.post("/login", loginTeacher);
 teacherRouter.get("/profile", authTeacher, teacherProfile);
-teacherRouter.post("/update-profile", authTeacher, updateTeacherProfile); // Add the updateTeacherProfile function
+teacherRouter.put("/update-profile", authTeacher, updateTeacherProfile); // Use PUT for updates
+teacherRouter.get("/students", authTeacher, getStudentsByTeacher);
 
 teacherRouter.get('/code/:code', async (req, res) => {
     try {
@@ -23,4 +24,5 @@ teacherRouter.get('/code/:code', async (req, res) => {
     }
 });
 
+export { getStudentsByTeacher, loginTeacher, teacherList, teacherProfile, updateTeacherProfile };
 export default teacherRouter;

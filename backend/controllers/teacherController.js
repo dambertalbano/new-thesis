@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import mongoose from 'mongoose';
 import studentModel from "../models/studentModel.js";
 import teacherModel from "../models/teacherModel.js";
 
@@ -18,22 +19,40 @@ const loginTeacher = async (req, res) => {
             return res.json({ success: false, message: "Invalid credentials" });
         }
 
-        console.log("Hashed password from database:", user.password);
-        console.log("Plain text password from request:", password);
-
         const isMatch = await bcrypt.compare(password, user.password);
 
-        console.log("bcrypt.compare result:", isMatch); // Add this line
-
-        if (isMatch) {
-            const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
-            res.json({ success: true, token });
-        } else {
-            res.json({ success: false, message: "Invalid credentials" });
+        if (!isMatch) {
+            return res.json({ success: false, message: "Invalid credentials" });
         }
+
+        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
+        // Update signInTime and reset signOutTime only if it's null
+        const updateData = {
+            signInTime: new Date(),
+        };
+        // Only reset signOutTime if it's not already set
+        const existingUser = await teacherModel.findById(user._id).lean();
+        if (!existingUser?.signOutTime) {
+            updateData.signOutTime = null;
+        }
+
+        await teacherModel.findByIdAndUpdate(user._id, updateData);
+        res.json({ success: true, token });
     } catch (error) {
         console.error("Login error:", error);
         res.json({ success: false, message: error.message });
+    }
+};
+
+// API for teacher Logout
+const logoutTeacher = async (req, res) => {
+    try {
+        const teacherId = req.teacher.id;
+        await teacherModel.findByIdAndUpdate(teacherId, { signOutTime: new Date() });
+        res.json({ success: true, message: "Logged out successfully" });
+    } catch (error) {
+        console.error("Logout error:", error);
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
@@ -51,12 +70,24 @@ const teacherList = async (req, res) => {
 // API to get teacher profile for Teacher Panel
 const teacherProfile = async (req, res) => {
     try {
-        const { docId } = req.body;
-        const profileData = await teacherModel.findById(docId).select('-password');
+        const teacherId = req.teacher.id;
+
+        // Check if teacherId is a valid ObjectId
+        if (!mongoose.Types.ObjectId.isValid(teacherId)) {
+            console.log('Invalid teacherId');
+            return res.status(400).json({ success: false, message: 'Invalid teacher ID' });
+        }
+
+        const profileData = await teacherModel.findById(teacherId).select('-password').lean();
+
+        if (!profileData) {
+            return res.status(404).json({ success: false, message: 'Teacher not found' });
+        }
+
         res.json({ success: true, profileData });
     } catch (error) {
-        console.log(error);
-        res.json({ success: false, message: error.message });
+        console.error('Error fetching teacher profile:', error);
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
@@ -117,4 +148,5 @@ const getStudentsByTeacher = async (req, res) => {
     }
 };
 
-export { getStudentsByTeacher, loginTeacher, teacherList, teacherProfile, updateTeacherProfile };
+export { getStudentsByTeacher, loginTeacher, logoutTeacher, teacherList, teacherProfile, updateTeacherProfile };
+

@@ -11,301 +11,359 @@ import { StudentContext } from '../context/StudentContext';
 import { TeacherContext } from '../context/TeacherContext';
 
 const Navbar = () => {
-  const { dToken, setDToken } = useContext(TeacherContext);
-  const { aToken, setAToken } = useContext(AdminContext);
-  const { sToken, setSToken } = useContext(StudentContext);
-  const { eToken, setEToken } = useContext(EmployeeContext);
-  const navigate = useNavigate();
-  
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [openDropdown, setOpenDropdown] = useState(null);
+    const { dToken, setDToken } = useContext(TeacherContext);
+    const { aToken, setAToken } = useContext(AdminContext);
+    const { sToken, setSToken } = useContext(StudentContext);
+    const { eToken, setEToken } = useContext(EmployeeContext);
+    const navigate = useNavigate();
 
-  useEffect(() => {
-    const handleResize = () => {
-      // Close mobile menu when screen width is large
-      if (window.innerWidth >= 1024) {
-        setIsMobileMenuOpen(false);
-        setOpenDropdown(null);
-      }
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [openDropdown, setOpenDropdown] = useState(null);
+
+    useEffect(() => {
+        const handleResize = () => {
+            // Close mobile menu when screen width is large
+            if (window.innerWidth >= 1024) {
+                setIsMobileMenuOpen(false);
+                setOpenDropdown(null);
+            }
+        };
+
+        // Add event listener
+        window.addEventListener('resize', handleResize);
+
+        // Clean up event listener
+        return () => {
+            window.removeEventListener('resize', handleResize);
+        };
+    }, []);
+
+    const handleLogout = () => {
+        navigate('/');
+        setAToken(null);
+        setDToken(null);
+        setSToken(null);
+        setEToken(null);
+        localStorage.removeItem('sToken');
+        localStorage.removeItem('eToken');
+        localStorage.removeItem('dToken');
+        localStorage.removeItem('aToken');
     };
 
-    // Add event listener
-    window.addEventListener('resize', handleResize);
-
-    // Clean up event listener
-    return () => {
-      window.removeEventListener('resize', handleResize);
+    const handleScan = () => {
+        navigate('/rfid-scan');
     };
-  }, []);
 
-  const handleLogout = () => {
-    navigate('/');
-    setAToken(null);
-    setDToken(null);
-    setSToken(null);
-    setEToken(null);
-    localStorage.removeItem('sToken');
-    localStorage.removeItem('eToken');
-    localStorage.removeItem('dToken');
-    localStorage.removeItem('aToken');
-  };
+    const handleDashboard = () => {
+        navigate('/admin-dashboard');
+    };
 
-  const handleScan = () => {
-    navigate('/rfid-scan'); 
-  };
+    // Define role-based navMenus
+    const adminNavMenus = [
+        {
+            title: 'Add User',
+            path: '/add-users',
+            subMenu: [
+                { name: 'Add Student', path: '/add-student' },
+                { name: 'Add Teacher', path: '/add-teacher' },
+                { name: 'Add Employee', path: '/add-employee' },],
+        },
+        {
+            title: 'User List',
+            path: '/all-users',
+            subMenu: [
+                { name: 'Student', path: '/student-list' },
+                { name: 'Teacher', path: '/teacher-list' },
+                { name: 'Employee', path: '/employee-list' },
+            ],
+        },
+        {
+            title: 'Attendance',
+            path: '/attendance',
+            subMenu: [
+                { name: 'View Attendance', path: '/attendance' },
+            ],
+        },
+    ];
 
-  const handleDashboard = () => {
-    navigate('/admin-dashboard');
-  };
+    const teacherNavMenus = [
+        {
+            title: 'Dashboard',
+            path: '/teacher-dashboard',
+        },
+        {
+            title: 'Profile',
+            path: '/teacher-profile',
+        },
+    ];
 
-  const navMenus = [
-    {
-      title: 'Add User',
-      path: '/add-users',
-      subMenu: [
-        { name: 'Add Student', path: '/add-student'},
-        { name: 'Add Teacher', path: '/add-teacher' },
-        { name: 'Add Employee', path: '/add-employee' },],
-    },
-    {
-      title: 'User List',
-      path: '/all-users',
-      subMenu: [
-        { name: 'Student', path: '/student-list' },
-        { name: 'Teacher', path: '/teacher-list' },
-        { name: 'Employee', path: '/employee-list' },
-      ],
-    },
-    {
-      title: 'Attendance',
-      path: '/attendance',
-      subMenu: [
-        { name: 'View Attendance', path: '/attendance' },
-      ],
-    },
-  ];
+    const studentNavMenus = [
+        {
+            title: 'Dashboard',
+            path: '/student-dashboard',
+        },
+        {
+            title: 'Profile',
+            path: '/student-profile',
+        },
+    ];
 
-  const toggleDropdown = (index) => {
-    setOpenDropdown(openDropdown === index ? null : index);
-  };
+    const employeeNavMenus = [
+        {
+            title: 'Dashboard',
+            path: '/employee-dashboard',
+        },
+        {
+            title: 'Profile',
+            path: '/employee-profile',
+        },
+    ];
 
-  return (
-    <nav className='fixed top-0 w-full z-50 flex justify-between items-center px-4 sm:px-10 py-3 border-b bg-navbar font-sans'>
-      <div className='flex items-center gap-2 text-xs sm:text-sm'>
-        <img
-          onClick={() => navigate('/admin-dashboard')}
-          className='w-24 sm:w-32 md:w-36 lg:w-40 cursor-pointer'
-          src={assets.admin_logo}
-          alt='Logo'
-        />
-      </div>
-      
-      {/* Hamburger menu button */}
-      <button 
-        className='block lg:hidden text-white p-1'
-        onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-      >
-        {isMobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
-      </button>
+    const toggleDropdown = (index) => {
+        setOpenDropdown(openDropdown === index ? null : index);
+    };
 
-      {/* Mobile menu dropdown */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-            className='absolute top-16 left-0 right-0 bg-navbar p-4 flex flex-col'
-          >
-            <div className='flex flex-col gap-2'>
-              <button 
-                onClick={handleDashboard} 
-                className='text-white py-2 text-left hover:text-customRed transition-colors duration-200'
-              >
-                Dashboard
-              </button>
-              
-              <button 
-                onClick={handleScan} 
-                className='text-white py-2 text-left hover:text-customRed transition-colors duration-200'
-              >
-                Scan
-              </button>
-              
-              {navMenus.map((menu, index) => (
-                <div key={index} className='relative'>
-                  <button 
-                    onClick={() => toggleDropdown(index)}
-                    className='w-full text-white py-2 text-left flex justify-between items-center hover:text-customRed transition-colors duration-200'
-                  >
-                    {menu.title}
-                    <span>
-                      {openDropdown === index ? (
-                        <ChevronUp className="w-5 h-5 text-gray-400" />
-                            ) : (
-                        <ChevronDown className="w-5 h-5 text-gray-400" />
-                    )}
-                    </span>
-                  </button>
-                  
-                  <AnimatePresence>
-                    {openDropdown === index && (
-                      <motion.div
+    // Conditionally render navMenus based on user role
+    let navMenus;
+    if (aToken) {
+        navMenus = adminNavMenus;
+    } else if (dToken) {
+        navMenus = teacherNavMenus;
+    } else if (sToken) {
+        navMenus = studentNavMenus;
+    } else if (eToken) {
+        navMenus = employeeNavMenus;
+    } else {
+        navMenus = []; // Or a default menu
+    }
+
+    return (
+        <nav className='fixed top-0 w-full z-50 flex justify-between items-center px-4 sm:px-10 py-3 border-b bg-navbar font-sans'>
+            <div className='flex items-center gap-2 text-xs sm:text-sm'>
+                <img
+                    onClick={() => navigate('/admin-dashboard')}
+                    className='w-24 sm:w-32 md:w-36 lg:w-40 cursor-pointer'
+                    src={assets.admin_logo}
+                    alt='Logo'
+                />
+            </div>
+
+            {/* Hamburger menu button */}
+            <button
+                className='block lg:hidden text-white p-1'
+                onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+            >
+                {isMobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
+            </button>
+
+            {/* Mobile menu dropdown */}
+            <AnimatePresence>
+                {isMobileMenuOpen && (
+                    <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className='pl-4'
-                      >
-                        {menu.subMenu.map((subItem, subIndex) => (
-                          <button
-                            key={subIndex}
-                            onClick={() => {
-                              navigate(subItem.path);
-                              setIsMobileMenuOpen(false);
-                            }}
-                            className='block w-full text-left text-white py-2 px-4 hover:text-customRed transition-colors duration-200'
-                          >
-                            {subItem.name}
-                          </button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              ))}
-              
-              <button 
-                onClick={handleLogout} 
-                className='text-white bg-customRed bg-opacity-75 py-2 px-4 text-center hover:text-navbar rounded transition-colors duration-200'
-              >
-                Sign Out
-              </button>
+                        transition={{ duration: 0.3 }}
+                        className='absolute top-16 left-0 right-0 bg-navbar p-4 flex flex-col'
+                    >
+                        <div className='flex flex-col gap-2'>
+                            {/* Conditionally render Dashboard and Scan for Admin */}
+                            {aToken && (
+                                <>
+                                    <button
+                                        onClick={handleDashboard}
+                                        className='text-white py-2 text-left hover:text-customRed transition-colors duration-200'
+                                    >
+                                        Dashboard
+                                    </button>
+
+                                    <button
+                                        onClick={handleScan}
+                                        className='text-white py-2 text-left hover:text-customRed transition-colors duration-200'
+                                    >
+                                        Scan
+                                    </button>
+                                </>
+                            )}
+
+                            {navMenus.map((menu, index) => (
+                                <div key={index} className='relative'>
+                                    <button
+                                        onClick={() => toggleDropdown(index)}
+                                        className='w-full text-white py-2 text-left flex justify-between items-center hover:text-customRed transition-colors duration-200'
+                                    >
+                                        {menu.title}
+                                        <span>
+                                            {openDropdown === index ? (
+                                                <ChevronUp className="w-5 h-5 text-gray-400" />
+                                            ) : (
+                                                <ChevronDown className="w-5 h-5 text-gray-400" />
+                                            )}
+                                        </span>
+                                    </button>
+
+                                    <AnimatePresence>
+                                        {openDropdown === index && (
+                                            <motion.div
+                                                initial={{ opacity: 0, height: 0 }}
+                                                animate={{ opacity: 1, height: 'auto' }}
+                                                exit={{ opacity: 0, height: 0 }}
+                                                transition={{ duration: 0.2 }}
+                                                className='pl-4'
+                                            >
+                                                {menu.subMenu && menu.subMenu.map((subItem, subIndex) => (
+                                                    <button
+                                                        key={subIndex}
+                                                        onClick={() => {
+                                                            navigate(subItem.path);
+                                                            setIsMobileMenuOpen(false);
+                                                        }}
+                                                        className='block w-full text-left text-white py-2 px-4 hover:text-customRed transition-colors duration-200'
+                                                    >
+                                                        {subItem.name}
+                                                    </button>
+                                                ))}
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+                            ))}
+
+                            <button
+                                onClick={handleLogout}
+                                className='text-white bg-customRed bg-opacity-75 py-2 px-4 text-center hover:text-navbar rounded transition-colors duration-200'
+                            >
+                                Sign Out
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Desktop menu */}
+            <div className='hidden lg:flex items-center gap-2 sm:gap-4 md:gap-6 lg:gap-8'>
+                {/* Conditionally render Dashboard and Scan for Admin */}
+                {aToken && (
+                    <>
+                        <FlyoutLink
+                            title="Dashboard"
+                            onClick={handleDashboard}
+                        />
+                        <FlyoutLink
+                            title="Scan"
+                            onClick={handleScan}
+                        />
+                    </>
+                )}
+                {navMenus.map((menu, index) => (
+                    <FlyoutLink
+                        key={index}
+                        title={menu.title}
+                        path={menu.path}
+                        FlyoutContent={() => (
+                            <MenuContent
+                                subMenu={menu.subMenu}
+                                navigate={navigate}
+                            />
+                        )}
+                    />
+                ))}
+                <CustomButton onClick={handleLogout} label="Sign Out" />
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      
-      {/* Desktop menu */}
-      <div className='hidden lg:flex items-center gap-2 sm:gap-4 md:gap-6 lg:gap-8'>
-        <FlyoutLink
-          title="Dashboard"
-          onClick={handleDashboard}
-        />
-        <FlyoutLink
-          title="Scan"
-          onClick={handleScan}
-        />
-        {navMenus.map((menu, index) => (
-          <FlyoutLink
-            key={index}
-            title={menu.title}
-            path={menu.path}
-            FlyoutContent={() => (
-              <MenuContent
-                subMenu={menu.subMenu}
-                navigate={navigate}
-              />
-            )}
-          />
-        ))}
-        <CustomButton onClick={handleLogout} label="Sign Out" />
-      </div>
-    </nav>
-  );
+        </nav>
+    );
 };
 
 const FlyoutLink = ({ title, FlyoutContent, path, onClick }) => {
     const navigate = useNavigate();
     const [isHovered, setIsHovered] = useState(false);
-  
+
     const handleClick = () => {
-      if (path) {
-        navigate(path);
-      }
-      if (onClick) {
-        onClick();
-      }
+        if (path) {
+            navigate(path);
+        }
+        if (onClick) {
+            onClick();
+        }
     };
-  
+
     return (
-      <div
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        className='relative w-fit h-fit'
-      >
-        <span
-          onClick={handleClick}
-          className='relative text-white cursor-pointer text-sm sm:text-base'
+        <div
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            className='relative w-fit h-fit'
         >
-          {title}
-          <span
-            style={{
-              transform: isHovered ? 'scaleX(1)' : 'scaleX(0)',
-            }}
-            className='absolute -bottom-1 sm:-bottom-2 left-0 right-0 h-0.5 sm:h-1 origin-left scale-x-0 rounded-full bg-customRed transition-transform duration-300 ease-out'
-          />
-        </span>
-        <AnimatePresence>
-          {isHovered && FlyoutContent && (
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 15 }}
-              style={{ translateX: '-50%' }}
-              transition={{ duration: 0.3, ease: 'easeOut' }}
-              className='absolute left-1/2 top-8 sm:top-12 text-black rounded-md shadow-lg'
+            <span
+                onClick={handleClick}
+                className='relative text-white cursor-pointer text-sm sm:text-base'
             >
-              <div className='absolute -top-6 left-0 right-0 h-6 bg-transparent' />
-              <div className='absolute left-1/2 top-0 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-white' />
-              {FlyoutContent && <FlyoutContent />}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+                {title}
+                <span
+                    style={{
+                        transform: isHovered ? 'scaleX(1)' : 'scaleX(0)',
+                    }}
+                    className='absolute -bottom-1 sm:-bottom-2 left-0 right-0 h-0.5 sm:h-1 origin-left scale-x-0 rounded-full bg-customRed transition-transform duration-300 ease-out'
+                />
+            </span>
+            <AnimatePresence>
+                {isHovered && FlyoutContent && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 15 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 15 }}
+                        style={{ translateX: '-50%' }}
+                        transition={{ duration: 0.3, ease: 'easeOut' }}
+                        className='absolute left-1/2 top-8 sm:top-12 text-black rounded-md shadow-lg'
+                    >
+                        <div className='absolute -top-6 left-0 right-0 h-6 bg-transparent' />
+                        <div className='absolute left-1/2 top-0 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-white' />
+                        {FlyoutContent && <FlyoutContent />}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
     );
-  };
+};
 
 const MenuContent = ({ subMenu, navigate }) => {
-  return (
-    <div className='w-48 sm:w-56 bg-white p-4 shadow-xl rounded-md'>
-      {subMenu.map((item, index) => (
-        <a
-          key={index}
-          href='#'
-          onClick={(e) => {
-            e.preventDefault();
-            if (item.path) {
-              navigate(item.path);
-            } else if (item.action) {
-              item.action();
-            }
-          }}
-          className='block py-2 px-4 text-sm hover:bg-gray-100 rounded-md transition-colors duration-200 ease-in-out hover:scale-105'
-        >
-          {item.name}
-        </a>
-      ))}
-    </div>
-  );
+    return (
+        <div className='w-48 sm:w-56 bg-white p-4 shadow-xl rounded-md'>
+            {subMenu && subMenu.map((item, index) => (
+                <a
+                    key={index}
+                    href='#'
+                    onClick={(e) => {
+                        e.preventDefault();
+                        if (item.path) {
+                            navigate(item.path);
+                        } else if (item.action) {
+                            item.action();
+                        }
+                    }}
+                    className='block py-2 px-4 text-sm hover:bg-gray-100 rounded-md transition-colors duration-200 ease-in-out hover:scale-105'
+                >
+                    {item.name}
+                </a>
+            ))}
+        </div>
+    );
 };
 
 const CustomButton = ({ onClick, label }) => {
-  const [hover, setHover] = useState(false);
+    const [hover, setHover] = useState(false);
 
-  return (
-    <button
-      onClick={onClick}
-      className='relative w-fit h-fit'
-    >
-      <span
-        className={`relative cursor-pointer text-navbar text-sm sm:text-base hover:text-white transition-colors duration-200 rounded px-4 py-2 bg-customRed`}
-      >
-        {label}
-      </span>
-    </button>
-  );
+    return (
+        <button
+            onClick={onClick}
+            className='relative w-fit h-fit'
+        >
+            <span
+                className={`relative cursor-pointer text-navbar text-sm sm:text-base hover:text-white transition-colors duration-200 rounded px-4 py-2 bg-customRed`}
+            >
+                {label}
+            </span>
+        </button>
+    );
 };
 
 export default Navbar;
