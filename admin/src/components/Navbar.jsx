@@ -289,7 +289,7 @@ const Navbar = () => {
                 <div className="relative">
                     <button
                         onClick={() => setIsAdminDropdownOpen(!isAdminDropdownOpen)}
-                        className="text-white relative cursor-pointer text-sm sm:text-base px-4 py-2 bg-red-600 rounded-md flex items-center hover:bg-opacity-80 transition-colors duration-200"
+                        className="text-white relative cursor-pointer text-sm sm:text-base px-4 py-2 bg-customRed rounded-md flex items-center hover:bg-opacity-80 transition-colors duration-200"
                     >
                         {aToken ? 'Admin' : 'User'}
                         <ChevronDown className="ml-2 w-5 h-5" />
