@@ -1,37 +1,111 @@
-import React, { useContext, useEffect } from 'react';
-import { assets } from '../../assets/assets';
+import axios from 'axios';
+import React, { useCallback, useContext, useEffect, useState } from 'react';
+import { FiInfo } from 'react-icons/fi'; // Import FiInfo icon
+import { toast } from 'react-toastify';
 import { StudentContext } from '../../context/StudentContext';
 
 const StudentDashboard = () => {
-    const { sToken, dashData, getDashData } = useContext(StudentContext);
+    const [studentInfo, setStudentInfo] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const { sToken, backendUrl } = useContext(StudentContext);
+
+    const fetchStudentInfo = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const response = await axios.get(`${backendUrl}/api/student/profile`, {
+                headers: {
+                    Authorization: `Bearer ${sToken}`,
+                },
+            });
+            if (response.data.success) {
+                setStudentInfo(response.data.profileData);
+            } else {
+                toast.error(response.data.message);
+                setError(response.data.message);
+            }
+        } catch (err) {
+            setError(err.message);
+            toast.error(err.message);
+        } finally {
+            setLoading(false);
+        }
+    }, [sToken, backendUrl]);
 
     useEffect(() => {
-        if (sToken) {
-            getDashData();
-        }
-    }, [sToken, getDashData]);
+        fetchStudentInfo();
+    }, [fetchStudentInfo]);
 
-    return dashData ? (
-        <div className='m-5'>
-            <div className='flex flex-wrap gap-3'>
-                <div className='flex items-center gap-2 bg-white p-4 min-w-52 rounded border-2 border-gray-100 cursor-pointer hover:scale-105 transition-all'>
-                    <img className='w-14' src={assets.appointments_icon} alt="" />
-                    <div>
-                        <p className='text-xl font-semibold text-gray-600'>{dashData.appointments}</p>
-                        <p className='text-gray-400'>Attendance</p>
-                    </div>
+    const formatName = (user) => {
+        if (!user) return '';
+        return `${user?.firstName} ${user?.middleName ? user?.middleName + ' ' : ''}${user?.lastName}`;
+    };
+
+    return (
+        <div className="flex justify-center items-center min-h-screen w-full bg-gray-100 p-4">
+            <div className="bg-white p-8 rounded-xl shadow-lg text-center max-w-2xl w-full">
+                <div className="flex items-center justify-center mb-4 text-customRed">
+                    <FiInfo className="w-8 h-8" />
+                    <h2 className="text-3xl font-semibold ml-2">Student Information</h2>
                 </div>
-                <div className='flex items-center gap-2 bg-white p-4 min-w-52 rounded border-2 border-gray-100 cursor-pointer hover:scale-105 transition-all'>
-                    <img className='w-14' src={assets.patients_icon} alt="" />
-                    <div>
-                        <p className='text-xl font-semibold text-gray-600'>{dashData.patients}</p>
-                        <p className='text-gray-400'>Student</p>
-                    </div>
-                </div>
+                {loading ? (
+                    <p className="text-blue-500 text-center">⏳ Loading...</p>
+                ) : error ? (
+                    <p className="text-red-500 text-center">{error}</p>
+                ) : studentInfo ? (
+                    <UserInfoDisplay userInfo={studentInfo} formatName={formatName} />
+                ) : (
+                    <p>No student information available.</p>
+                )}
             </div>
         </div>
-    ) : (
-        <div>Loading...</div>
+    );
+};
+
+const UserInfoDisplay = ({ userInfo, formatName }) => {
+    const formatDateTime = (dateTimeString) => {
+        if (!dateTimeString) return 'N/A';
+        try {
+            const date = new Date(dateTimeString);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: 'numeric',
+                second: 'numeric',
+            });
+        } catch (error) {
+            console.error("Error formatting date:", error);
+            return 'Invalid Date';
+        }
+    };
+
+    return (
+        <div className="mt-6 p-6 bg-gray-50 rounded-lg shadow-md text-left w-full">
+            <div className="flex flex-wrap items-center gap-4">
+                <img src={userInfo?.image || 'blank-image-url'} alt="Student" className="w-28 h-28 rounded-full border" />
+                <div className="flex-1 min-w-0">
+                    <p className="text-xl font-semibold truncate">{formatName(userInfo)}</p>
+                    <p className="text-sm text-gray-500">{userInfo?.email}</p>
+                </div>
+            </div>
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-base text-gray-700 break-words">
+                <p><strong>Email:</strong> {userInfo?.email}</p>
+                <p><strong>Address:</strong> {userInfo?.address}</p>
+                <p><strong>Contact Number:</strong> {userInfo?.number}</p>
+                {userInfo?.gradeYearLevel && <p><strong>Grade/Year Level:</strong> {userInfo?.gradeYearLevel}</p>}
+                {userInfo?.section && <p><strong>Section:</strong> {userInfo?.section}</p>}
+                {userInfo?.subjects && <p><strong>Subjects:</strong> {userInfo?.subjects}</p>}
+            </div>
+            <div className="col-span-1 sm:col-span-2 flex justify-between border-t pt-2">
+                <p className="text-green-500"><strong>Sign In Time:</strong> {formatDateTime(userInfo?.signInTime)}</p>
+                {userInfo?.signOutTime && (
+                    <p className="text-red-500"><strong>Sign Out Time:</strong> {formatDateTime(userInfo?.signOutTime)}</p>
+                )}
+            </div>
+        </div>
     );
 };
 
