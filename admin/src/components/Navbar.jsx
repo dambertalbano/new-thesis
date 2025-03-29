@@ -19,20 +19,19 @@ const Navbar = () => {
 
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [openDropdown, setOpenDropdown] = useState(null);
+    const [isAdminDropdownOpen, setIsAdminDropdownOpen] = useState(false);
 
     useEffect(() => {
         const handleResize = () => {
-            // Close mobile menu when screen width is large
             if (window.innerWidth >= 1024) {
                 setIsMobileMenuOpen(false);
                 setOpenDropdown(null);
+                setIsAdminDropdownOpen(false);
             }
         };
 
-        // Add event listener
         window.addEventListener('resize', handleResize);
 
-        // Clean up event listener
         return () => {
             window.removeEventListener('resize', handleResize);
         };
@@ -58,84 +57,82 @@ const Navbar = () => {
         navigate('/admin-dashboard');
     };
 
-    // Define role-based navMenus
-    const adminNavMenus = [
-        {
-            title: 'Add User',
-            path: '/add-users',
-            subMenu: [
-                { name: 'Add Student', path: '/add-student' },
-                { name: 'Add Teacher', path: '/add-teacher' },
-                { name: 'Add Employee', path: '/add-employee' },],
-        },
-        {
-            title: 'User List',
-            path: '/all-users',
-            subMenu: [
-                { name: 'Student', path: '/student-list' },
-                { name: 'Teacher', path: '/teacher-list' },
-                { name: 'Employee', path: '/employee-list' },
-            ],
-        },
-        {
-            title: 'Attendance',
-            path: '/attendance',
-            subMenu: [
-                { name: 'View Attendance', path: '/attendance' },
-            ],
-        },
-    ];
+    const getNavItems = () => {
+        if (aToken) {
+            return [
+                {
+                    title: 'Attendance',
+                    path: '/attendance',
+                },
+                {
+                    title: 'User List',
+                    path: '/all-users',
+                    subMenu: [
+                        { name: 'Student', path: '/student-list' },
+                        { name: 'Teacher', path: '/teacher-list' },
+                        { name: 'Employee', path: '/employee-list' },
+                    ],
+                },
+                {
+                    title: 'Add User',
+                    path: '/add-users',
+                    subMenu: [
+                        { name: 'Add Student', path: '/add-student' },
+                        { name: 'Add Teacher', path: '/add-teacher' },
+                        { name: 'Add Employee', path: '/add-employee' },
+                    ],
+                },
+            ];
+        } else if (dToken) {
+            return [
+                { title: 'Dashboard', path: '/teacher-dashboard' },
+                { title: 'User List', path: '/teacher-list' },
+                { title: 'Attendance', path: '/attendance-teacher' },
+            ];
+        } else if (sToken) {
+            return [
+                { title: 'Dashboard', path: '/student-dashboard' },
+                { title: 'Attendance', path: '/attendance-student' },
+            ];
+        } else if (eToken) {
+            return [
+                { title: 'Dashboard', path: '/employee-dashboard' },
+                { title: 'Attendance', path: '/attendance-employee' },
+            ];
+        } else {
+            return [];
+        }
+    };
 
-    const teacherNavMenus = [
-        {
-            title: 'Dashboard',
-            path: '/teacher-dashboard',
-        },
-        {
-            title: 'Profile',
-            path: '/teacher-profile',
-        },
-    ];
+    const getSignOutLabel = () => {
+        if (aToken) {
+            return 'Sign Out Admin';
+        } else if (dToken) {
+            return 'Sign Out Teacher';
+        } else if (sToken) {
+            return 'Sign Out Student';
+        } else if (eToken) {
+            return 'Sign Out Employee';
+        } else {
+            return 'Sign Out';
+        }
+    };
 
-    const studentNavMenus = [
-        {
-            title: 'Dashboard',
-            path: '/student-dashboard',
-        },
-        {
-            title: 'Profile',
-            path: '/student-profile',
-        },
-    ];
+    const navItems = getNavItems();
+    const signOutLabel = getSignOutLabel();
 
-    const employeeNavMenus = [
-        {
-            title: 'Dashboard',
-            path: '/employee-dashboard',
-        },
-        {
-            title: 'Profile',
-            path: '/employee-profile',
-        },
-    ];
+    // Function to get the Attendance link based on user role
+    const getAttendanceLink = () => {
+        if (aToken) return '/attendance';
+        if (dToken) return '/attendance-teacher';
+        if (sToken) return '/attendance-student';
+        if (eToken) return '/attendance-employee';
+        return '/attendance'; // Default if no token
+    };
 
     const toggleDropdown = (index) => {
         setOpenDropdown(openDropdown === index ? null : index);
     };
-
-    // Conditionally render navMenus based on user role
-    let navMenus;
-    if (aToken) {
-        navMenus = adminNavMenus;
-    } else if (dToken) {
-        navMenus = teacherNavMenus;
-    } else if (sToken) {
-        navMenus = studentNavMenus;
-    } else if (eToken) {
-        navMenus = employeeNavMenus;
-    } else {
-        navMenus = []; // Or a default menu
-    }
 
     return (
         <nav className='fixed top-0 w-full z-50 flex justify-between items-center px-4 sm:px-10 py-3 border-b bg-navbar font-sans'>
@@ -148,7 +145,6 @@ const Navbar = () => {
                 />
             </div>
 
-            {/* Hamburger menu button */}
             <button
                 className='block lg:hidden text-white p-1'
                 onClick={() => setIsMobileMenuOpen((prev) => !prev)}
@@ -156,7 +152,6 @@ const Navbar = () => {
                 {isMobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
             </button>
 
-            {/* Mobile menu dropdown */}
             <AnimatePresence>
                 {isMobileMenuOpen && (
                     <motion.div
@@ -164,85 +159,97 @@ const Navbar = () => {
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
                         transition={{ duration: 0.3 }}
-                        className='absolute top-16 left-0 right-0 bg-navbar p-4 flex flex-col'
+                        className='absolute top-16 right-0 bg-navbar p-4 flex flex-col rounded-b-lg shadow-md'
                     >
                         <div className='flex flex-col gap-2'>
-                            {/* Conditionally render Dashboard and Scan for Admin */}
                             {aToken && (
                                 <>
                                     <button
                                         onClick={handleDashboard}
-                                        className='text-white py-2 text-left hover:text-customRed transition-colors duration-200'
+                                        className='text-white py-2 text-left hover:text-customRed transition-colors duration-200 rounded-md px-3'
                                     >
                                         Dashboard
                                     </button>
-
                                     <button
                                         onClick={handleScan}
-                                        className='text-white py-2 text-left hover:text-customRed transition-colors duration-200'
+                                        className='text-white py-2 text-left hover:text-customRed transition-colors duration-200 rounded-md px-3'
                                     >
                                         Scan
                                     </button>
                                 </>
                             )}
 
-                            {navMenus.map((menu, index) => (
-                                <div key={index} className='relative'>
-                                    <button
-                                        onClick={() => toggleDropdown(index)}
-                                        className='w-full text-white py-2 text-left flex justify-between items-center hover:text-customRed transition-colors duration-200'
-                                    >
-                                        {menu.title}
-                                        <span>
-                                            {openDropdown === index ? (
-                                                <ChevronUp className="w-5 h-5 text-gray-400" />
-                                            ) : (
-                                                <ChevronDown className="w-5 h-5 text-gray-400" />
-                                            )}
-                                        </span>
-                                    </button>
+                            {navItems.map((menu, index) => {
+                                if (menu.title === 'Attendance') {
+                                    return (
+                                        <button
+                                            key={index}
+                                            onClick={() => {
+                                                navigate(getAttendanceLink());
+                                                setIsMobileMenuOpen(false);
+                                            }}
+                                            className='w-full text-white py-2 text-left flex justify-between items-center hover:text-customRed transition-colors duration-200 rounded-md px-3'
+                                        >
+                                            {menu.title}
+                                        </button>
+                                    );
+                                }
+                                return (
+                                    <div key={index} className='relative'>
+                                        <button
+                                            onClick={() => toggleDropdown(index)}
+                                            className='w-full text-white py-2 text-left flex justify-between items-center hover:text-customRed transition-colors duration-200 rounded-md px-3'
+                                        >
+                                            {menu.title}
+                                            <span>
+                                                {openDropdown === index ? (
+                                                    <ChevronUp className="w-5 h-5 text-gray-400" />
+                                                ) : (
+                                                    <ChevronDown className="w-5 h-5 text-gray-400" />
+                                                )}
+                                            </span>
+                                        </button>
 
-                                    <AnimatePresence>
-                                        {openDropdown === index && (
-                                            <motion.div
-                                                initial={{ opacity: 0, height: 0 }}
-                                                animate={{ opacity: 1, height: 'auto' }}
-                                                exit={{ opacity: 0, height: 0 }}
-                                                transition={{ duration: 0.2 }}
-                                                className='pl-4'
-                                            >
-                                                {menu.subMenu && menu.subMenu.map((subItem, subIndex) => (
-                                                    <button
-                                                        key={subIndex}
-                                                        onClick={() => {
-                                                            navigate(subItem.path);
-                                                            setIsMobileMenuOpen(false);
-                                                        }}
-                                                        className='block w-full text-left text-white py-2 px-4 hover:text-customRed transition-colors duration-200'
-                                                    >
-                                                        {subItem.name}
-                                                    </button>
-                                                ))}
-                                            </motion.div>
-                                        )}
-                                    </AnimatePresence>
-                                </div>
-                            ))}
+                                        <AnimatePresence>
+                                            {openDropdown === index && menu.subMenu && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, height: 0 }}
+                                                    animate={{ opacity: 1, height: 'auto' }}
+                                                    exit={{ opacity: 0, height: 0 }}
+                                                    transition={{ duration: 0.2 }}
+                                                    className='pl-4 mt-1 rounded-md'
+                                                >
+                                                    {menu.subMenu.map((subItem, subIndex) => (
+                                                        <button
+                                                            key={subIndex}
+                                                            onClick={() => {
+                                                                navigate(subItem.path);
+                                                                setIsMobileMenuOpen(false);
+                                                            }}
+                                                            className='block w-full text-left text-white py-2 px-4 hover:text-customRed transition-colors duration-200 rounded-md'
+                                                        >
+                                                            {subItem.name}
+                                                        </button>
+                                                    ))}
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
+                                    </div>
+                                );
+                            })}
 
                             <button
                                 onClick={handleLogout}
-                                className='text-white bg-customRed bg-opacity-75 py-2 px-4 text-center hover:text-navbar rounded transition-colors duration-200'
+                                className='text-white bg-customRed bg-opacity-75 py-2 px-4 text-center hover:text-navbar rounded-md transition-colors duration-200'
                             >
-                                Sign Out
+                                {signOutLabel}
                             </button>
                         </div>
                     </motion.div>
                 )}
             </AnimatePresence>
 
-            {/* Desktop menu */}
             <div className='hidden lg:flex items-center gap-2 sm:gap-4 md:gap-6 lg:gap-8'>
-                {/* Conditionally render Dashboard and Scan for Admin */}
                 {aToken && (
                     <>
                         <FlyoutLink
@@ -255,20 +262,74 @@ const Navbar = () => {
                         />
                     </>
                 )}
-                {navMenus.map((menu, index) => (
-                    <FlyoutLink
-                        key={index}
-                        title={menu.title}
-                        path={menu.path}
-                        FlyoutContent={() => (
-                            <MenuContent
-                                subMenu={menu.subMenu}
-                                navigate={navigate}
+                {navItems.map((menu, index) => {
+                    if (menu.title === 'Attendance') {
+                        return (
+                            <FlyoutLink
+                                key={index}
+                                title={menu.title}
+                                path={getAttendanceLink()}
                             />
+                        );
+                    }
+                    return (
+                        <FlyoutLink
+                            key={index}
+                            title={menu.title}
+                            path={menu.path}
+                            FlyoutContent={() => (
+                                <MenuContent
+                                    subMenu={menu.subMenu}
+                                    navigate={navigate}
+                                />
+                            )}
+                        />
+                    );
+                })}
+                <div className="relative">
+                    <button
+                        onClick={() => setIsAdminDropdownOpen(!isAdminDropdownOpen)}
+                        className="text-white relative cursor-pointer text-sm sm:text-base px-4 py-2 bg-red-600 rounded-md flex items-center hover:bg-opacity-80 transition-colors duration-200"
+                    >
+                        {aToken ? 'Admin' : 'User'}
+                        <ChevronDown className="ml-2 w-5 h-5" />
+                    </button>
+                    <AnimatePresence>
+                        {isAdminDropdownOpen && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 15 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 15 }}
+                                transition={{ duration: 0.3, ease: 'easeOut' }}
+                                className="absolute right-0 mt-2 bg-white rounded-md shadow-lg w-40 py-2"
+                            >
+                                {(dToken || sToken || eToken) && (
+                                    <button
+                                        onClick={() => {
+                                            if (dToken) {
+                                                navigate('/teacher-profile');
+                                            } else if (sToken) {
+                                                navigate('/student-profile');
+                                            } else if (eToken) {
+                                                navigate('/employee-profile');
+                                            }
+                                            setIsAdminDropdownOpen(false);
+                                        }}
+                                        className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 rounded-md transition-colors duration-200 ease-in-out hover:scale-105"
+                                    >
+                                        Profile
+                                    </button>
+                                )}
+                                <button
+                                    onClick={handleLogout}
+                                    className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 rounded-md transition-colors duration-200 ease-in-out hover:scale-105"
+                                >
+                                    {signOutLabel}
+                                </button>
+                            </motion.div>
                         )}
-                    />
-                ))}
-                <CustomButton onClick={handleLogout} label="Sign Out" />
+                    </AnimatePresence>
+                </div>
             </div>
         </nav>
     );
@@ -346,23 +407,6 @@ const MenuContent = ({ subMenu, navigate }) => {
                 </a>
             ))}
         </div>
-    );
-};
-
-const CustomButton = ({ onClick, label }) => {
-    const [hover, setHover] = useState(false);
-
-    return (
-        <button
-            onClick={onClick}
-            className='relative w-fit h-fit'
-        >
-            <span
-                className={`relative cursor-pointer text-navbar text-sm sm:text-base hover:text-white transition-colors duration-200 rounded px-4 py-2 bg-customRed`}
-            >
-                {label}
-            </span>
-        </button>
     );
 };
 
