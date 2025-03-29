@@ -40,9 +40,9 @@ const Dashboard = () => {
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-6xl justify-center"
         >
           {[
-            { name: "Students", count: dashData.students },
-            { name: "Teachers", count: dashData.teachers },
-            { name: "Employees", count: dashData.employees }, // Combined Administrators and Utilities into Employees
+            { name: "Student List", count: dashData.students },
+            { name: "Teacher List", count: dashData.teachers },
+            { name: "Employee List", count: dashData.employees }, // Combined Administrators and Utilities into Employees
           ].map((item) => (
             <Card
               key={item.name}

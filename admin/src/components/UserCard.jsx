@@ -1,87 +1,67 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { FiUsers } from "react-icons/fi"; // Using the same icon for consistency
 
-// Generic Card Component
-const Card = ({ title, buttonText, navigateTo }) => {
-    const navigate = useNavigate();
+const UserCard = ({ title, navigateTo }) => {
+  const navigate = useNavigate();
 
-    const handleNavigate = () => {
-        navigate(navigateTo);
-    };
+  return (
+    <motion.div
+      variants={{
+        initial: { scale: 0.5, y: 50, opacity: 0 },
+        animate: { scale: 1, y: 0, opacity: 1 },
+      }}
+      transition={{ type: "spring", mass: 3, stiffness: 400, damping: 50 }}
+      whileHover={{ scale: 1.05 }}
+      onClick={() => navigate(navigateTo)}
+      className="relative w-full max-w-[350px] h-[250px] sm:h-[280px] rounded-xl cursor-pointer bg-white overflow-hidden group shadow-lg flex flex-col items-center justify-center"
+    >
+      {/* Background Gradient Animation */}
+      <div className="absolute inset-0 bg-gradient-to-r from-[#A81010] to-red-700 translate-y-[100%] group-hover:translate-y-[0%] transition-transform duration-300" />
 
-    return (
-        <div className='flex items-center justify-center'>
-            <div className="bg-white p-6 rounded-lg shadow-xl hover:shadow-2xl transition-all w-full max-w-xs cursor-pointer transform hover:scale-105">
-                <h5 className="text-xl font-semibold text-gray-800 mb-5 text-center">
-                    {title}
-                </h5>
-                <div className="border-t pt-5">
-                    <button
-                        className="bg-customRed text-white text-sm font-medium py-2 px-4 rounded w-full hover:bg-customRed-600"
-                        onClick={handleNavigate}
-                    >
-                        {buttonText}
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
+      {/* Large Background Icon */}
+      <FiUsers className="absolute z-0 -top-12 -right-12 text-9xl text-gray-100 group-hover:text-red-400 group-hover:rotate-12 transition-transform duration-300" />
+
+      {/* Foreground Content */}
+      <div className="relative z-10 text-center">
+        <FiUsers className="mb-2 text-4xl text-red-600 group-hover:text-white transition-colors duration-300" />
+        <p className="text-2xl font-semibold text-gray-600 group-hover:text-red-200 transition-colors duration-300">
+          {title}
+        </p>
+      </div>
+    </motion.div>
+  );
 };
 
-// All Users
-export const StudentCard = () => (
-    <Card title="Students" buttonText="Student List" navigateTo="/student-list" />
-);
-
-export const EmployeeCard = () => (
-    <Card title="Employees" buttonText="Employee List" navigateTo="/employee-list" />
-);
-
-export const TeacherCard = () => (
-    <Card title="Teachers" buttonText="Teacher List" navigateTo="/teacher-list" />
-);
+// Attendance Cards
+export const AttendanceStudentCard = () => <UserCard title="Student Attendance" navigateTo="/attendance-student" />;
+export const AttendanceTeacherCard = () => <UserCard title="Teacher Attendance" navigateTo="/attendance-teacher" />;
+export const AttendanceEmployeeCard = () => <UserCard title="Employee Attendance" navigateTo="/attendance-employee" />;
 
 // Add Users
-export const AddStudentCard = () => (
-    <Card title="Student" buttonText="Add Student" navigateTo="/add-student" />
-);
+export const AddStudentCard = () => <UserCard title="Add Student" navigateTo="/add-student" />;
+export const AddAdministratorCard = () => <UserCard title="Add Administrator" navigateTo="/add-administrator" />;
+export const AddTeachersCard = () => <UserCard title="Add Teacher" navigateTo="/add-teacher" />;
+export const AddUtilityCard = () => <UserCard title="Add Utility" navigateTo="/add-utility" />;
+export const AddEmployeeCard = () => <UserCard title="Add Employee" navigateTo="/add-employee" />;
 
-export const AddEmployeeCard = () => (
-    <Card title="Employee" buttonText="Add Employee" navigateTo="/add-employee" />
-);
+// All Users
+export const StudentCard = () => <UserCard title="Students" navigateTo="/student-list" />;
+export const TeacherCard = () => <UserCard title="Teachers" navigateTo="/teacher-list" />;
+export const UtilityCard = () => <UserCard title="Utilities" navigateTo="/utility-list" />;
+export const AdministratorCard = () => <UserCard title="Administrators" navigateTo="/administrator-list" />;
+export const EmployeeCard = () => <UserCard title="Employees" navigateTo="/employee-list" />; // Added this export
 
-export const AddTeachersCard = () => (
-    <Card title="Teacher" buttonText="Add Teacher" navigateTo="/add-teacher" />
-);
-
-// Attendance
-export const AttendanceStudentCard = () => (
-    <Card title="Student" buttonText="Attendance Info" navigateTo="/attendance-student" />
-);
-
-export const AttendanceTeacherCard = () => (
-    <Card title="Teacher" buttonText="Attendance Info" navigateTo="/attendance-teacher" />
-);
-
-export const AttendanceEmployeeCard = () => (
-    <Card title="Employee" buttonText="Attendance Info" navigateTo="/attendance-employee" />
-);
-
-export const AllUserAttendanceCardLink = () => (
-    <Card title="All Users" buttonText="All Users Attendance" navigateTo="/attendance-all" />
-);
-
-
-// Card Container Component with CSS Grid Layout
+// Card Container Component with Responsive Grid
 const CardContainer = () => {
-    return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
-            <StudentCard />
-            <TeacherCard />
-            <EmployeeCard />
-            <AllUserAttendanceCardLink />
-        </div>
-    );
+  return (
+    <div className="flex flex-wrap justify-center gap-8 p-8">
+      <AttendanceStudentCard />
+      <AttendanceTeacherCard />
+      <AttendanceEmployeeCard />
+    </div>
+  );
 };
 
 export default CardContainer;
