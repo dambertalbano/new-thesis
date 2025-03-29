@@ -19,14 +19,14 @@ const Navbar = () => {
 
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [openDropdown, setOpenDropdown] = useState(null);
-    const [isAdminDropdownOpen, setIsAdminDropdownOpen] = useState(false);
+    const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
 
     useEffect(() => {
         const handleResize = () => {
             if (window.innerWidth >= 1024) {
                 setIsMobileMenuOpen(false);
                 setOpenDropdown(null);
-                setIsAdminDropdownOpen(false);
+                setIsUserDropdownOpen(false);
             }
         };
 
@@ -49,12 +49,31 @@ const Navbar = () => {
         localStorage.removeItem('aToken');
     };
 
+    const handleProfileNavigation = () => {
+        if (dToken) {
+            navigate('/teacher-profile');
+        } else if (sToken) {
+            navigate('/student-profile');
+        } else if (eToken) {
+            navigate('/employee-profile');
+        }
+        setIsUserDropdownOpen(false);
+    };
+
     const handleScan = () => {
         navigate('/rfid-scan');
     };
 
     const handleDashboard = () => {
-        navigate('/admin-dashboard');
+        if (aToken) {
+            navigate('/admin-dashboard');
+        } else if (dToken) {
+            navigate('/teacher-dashboard');
+        } else if (sToken) {
+            navigate('/student-dashboard');
+        } else if (eToken) {
+            navigate('/employee-dashboard');
+        }
     };
 
     const getNavItems = () => {
@@ -85,22 +104,32 @@ const Navbar = () => {
             ];
         } else if (dToken) {
             return [
-                { title: 'Dashboard', path: '/teacher-dashboard' },
-                { title: 'User List', path: '/teacher-list' },
                 { title: 'Attendance', path: '/attendance-teacher' },
             ];
         } else if (sToken) {
             return [
-                { title: 'Dashboard', path: '/student-dashboard' },
                 { title: 'Attendance', path: '/attendance-student' },
             ];
         } else if (eToken) {
             return [
-                { title: 'Dashboard', path: '/employee-dashboard' },
                 { title: 'Attendance', path: '/attendance-employee' },
             ];
         } else {
             return [];
+        }
+    };
+
+    const getUserRoleLabel = () => {
+        if (aToken) {
+            return 'Admin';
+        } else if (dToken) {
+            return 'Teacher';
+        } else if (sToken) {
+            return 'Student';
+        } else if (eToken) {
+            return 'Employee';
+        } else {
+            return 'User';
         }
     };
 
@@ -119,6 +148,7 @@ const Navbar = () => {
     };
 
     const navItems = getNavItems();
+    const userRoleLabel = getUserRoleLabel();
     const signOutLabel = getSignOutLabel();
 
     // Function to get the Attendance link based on user role
@@ -134,26 +164,49 @@ const Navbar = () => {
         setOpenDropdown(openDropdown === index ? null : index);
     };
 
+    // Function to get the dashboard link based on user role
+    const getDashboardLink = () => {
+        if (aToken) return '/admin-dashboard';
+        if (dToken) return '/teacher-dashboard';
+        if (sToken) return '/student-dashboard';
+        if (eToken) return '/employee-dashboard';
+        return '/'; // Default if no token
+    };
+
+    // Determine if the user is logged in
+    const isLoggedIn = aToken || dToken || sToken || eToken;
+
+    // Only navigate to the appropriate dashboard when clicking the logo
+    const handleLogoClick = () => {
+        if (isLoggedIn) {
+            handleDashboard();
+        } else {
+            navigate('/');
+        }
+    };
+
     return (
-        <nav className='fixed top-0 w-full z-50 flex justify-between items-center px-4 sm:px-10 py-3 border-b bg-navbar font-sans'>
+        <nav className='fixed top-0 w-full z-50 flex justify-between items-center px-4 sm:px-10 py-3 bg-navbar font-sans'>
             <div className='flex items-center gap-2 text-xs sm:text-sm'>
                 <img
-                    onClick={() => navigate('/admin-dashboard')}
+                    onClick={handleLogoClick}
                     className='w-24 sm:w-32 md:w-36 lg:w-40 cursor-pointer'
                     src={assets.admin_logo}
                     alt='Logo'
                 />
             </div>
 
-            <button
-                className='block lg:hidden text-white p-1'
-                onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-            >
-                {isMobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
-            </button>
+            {isLoggedIn && (
+                <button
+                    className='block lg:hidden text-white p-1'
+                    onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+                >
+                    {isMobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
+                </button>
+            )}
 
             <AnimatePresence>
-                {isMobileMenuOpen && (
+                {isMobileMenuOpen && isLoggedIn && (
                     <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
@@ -162,30 +215,29 @@ const Navbar = () => {
                         className='absolute top-16 right-0 bg-navbar p-4 flex flex-col rounded-b-lg shadow-md'
                     >
                         <div className='flex flex-col gap-2'>
+                            <button
+                                onClick={handleDashboard}
+                                className='text-white py-2 text-left hover:text-customRed transition-colors duration-200 rounded-md px-3'
+                            >
+                                {userRoleLabel} Dashboard
+                            </button>
+                            
                             {aToken && (
-                                <>
-                                    <button
-                                        onClick={handleDashboard}
-                                        className='text-white py-2 text-left hover:text-customRed transition-colors duration-200 rounded-md px-3'
-                                    >
-                                        Dashboard
-                                    </button>
-                                    <button
-                                        onClick={handleScan}
-                                        className='text-white py-2 text-left hover:text-customRed transition-colors duration-200 rounded-md px-3'
-                                    >
-                                        Scan
-                                    </button>
-                                </>
+                                <button
+                                    onClick={handleScan}
+                                    className='text-white py-2 text-left hover:text-customRed transition-colors duration-200 rounded-md px-3'
+                                >
+                                    Scan
+                                </button>
                             )}
 
                             {navItems.map((menu, index) => {
-                                if (menu.title === 'Attendance') {
+                                if (!menu.subMenu) {
                                     return (
                                         <button
                                             key={index}
                                             onClick={() => {
-                                                navigate(getAttendanceLink());
+                                                navigate(menu.path);
                                                 setIsMobileMenuOpen(false);
                                             }}
                                             className='w-full text-white py-2 text-left flex justify-between items-center hover:text-customRed transition-colors duration-200 rounded-md px-3'
@@ -238,6 +290,15 @@ const Navbar = () => {
                                 );
                             })}
 
+                            {(dToken || sToken || eToken) && (
+                                <button
+                                    onClick={handleProfileNavigation}
+                                    className='text-white py-2 text-left hover:text-customRed transition-colors duration-200 rounded-md px-3'
+                                >
+                                    Profile
+                                </button>
+                            )}
+
                             <button
                                 onClick={handleLogout}
                                 className='text-white bg-customRed bg-opacity-75 py-2 px-4 text-center hover:text-navbar rounded-md transition-colors duration-200'
@@ -249,88 +310,82 @@ const Navbar = () => {
                 )}
             </AnimatePresence>
 
-            <div className='hidden lg:flex items-center gap-2 sm:gap-4 md:gap-6 lg:gap-8'>
-                {aToken && (
-                    <>
-                        <FlyoutLink
-                            title="Dashboard"
-                            onClick={handleDashboard}
-                        />
+            {isLoggedIn && (
+                <div className='hidden lg:flex items-center gap-2 sm:gap-4 md:gap-6 lg:gap-8'>
+                    <FlyoutLink
+                        title={`${userRoleLabel} Dashboard`}
+                        onClick={handleDashboard}
+                    />
+                    
+                    {aToken && (
                         <FlyoutLink
                             title="Scan"
                             onClick={handleScan}
                         />
-                    </>
-                )}
-                {navItems.map((menu, index) => {
-                    if (menu.title === 'Attendance') {
+                    )}
+                    
+                    {navItems.map((menu, index) => {
+                        if (!menu.subMenu) {
+                            return (
+                                <FlyoutLink
+                                    key={index}
+                                    title={menu.title}
+                                    path={menu.path}
+                                />
+                            );
+                        }
                         return (
                             <FlyoutLink
                                 key={index}
                                 title={menu.title}
-                                path={getAttendanceLink()}
+                                path={menu.path}
+                                FlyoutContent={() => (
+                                    <MenuContent
+                                        subMenu={menu.subMenu}
+                                        navigate={navigate}
+                                    />
+                                )}
                             />
                         );
-                    }
-                    return (
-                        <FlyoutLink
-                            key={index}
-                            title={menu.title}
-                            path={menu.path}
-                            FlyoutContent={() => (
-                                <MenuContent
-                                    subMenu={menu.subMenu}
-                                    navigate={navigate}
-                                />
-                            )}
-                        />
-                    );
-                })}
-                <div className="relative">
-                    <button
-                        onClick={() => setIsAdminDropdownOpen(!isAdminDropdownOpen)}
-                        className="text-white relative cursor-pointer text-sm sm:text-base px-4 py-2 bg-customRed rounded-md flex items-center hover:bg-opacity-80 transition-colors duration-200"
-                    >
-                        {aToken ? 'Admin' : 'User'}
-                        <ChevronDown className="ml-2 w-5 h-5" />
-                    </button>
-                    <AnimatePresence>
-                        {isAdminDropdownOpen && (
-                            <motion.div
-                                initial={{ opacity: 0, y: 15 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: 15 }}
-                                transition={{ duration: 0.3, ease: 'easeOut' }}
-                                className="absolute right-0 mt-2 bg-white rounded-md shadow-lg w-40 py-2"
-                            >
-                                {(dToken || sToken || eToken) && (
+                    })}
+                    
+                    <div className="relative">
+                        <button
+                            onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                            className="text-white relative cursor-pointer text-sm sm:text-base px-4 py-2 bg-customRed rounded-md flex items-center hover:bg-opacity-80 transition-colors duration-200"
+                        >
+                            {userRoleLabel}
+                            <ChevronDown className="ml-2 w-5 h-5" />
+                        </button>
+                        <AnimatePresence>
+                            {isUserDropdownOpen && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 15 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: 15 }}
+                                    transition={{ duration: 0.3, ease: 'easeOut' }}
+                                    className="absolute right-0 mt-2 bg-white rounded-md shadow-lg w-40 py-2"
+                                >
+                                    {(dToken || sToken || eToken) && (
+                                        <button
+                                            onClick={handleProfileNavigation}
+                                            className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 rounded-md transition-colors duration-200 ease-in-out hover:scale-105"
+                                        >
+                                            Profile
+                                        </button>
+                                    )}
                                     <button
-                                        onClick={() => {
-                                            if (dToken) {
-                                                navigate('/teacher-profile');
-                                            } else if (sToken) {
-                                                navigate('/student-profile');
-                                            } else if (eToken) {
-                                                navigate('/employee-profile');
-                                            }
-                                            setIsAdminDropdownOpen(false);
-                                        }}
+                                        onClick={handleLogout}
                                         className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 rounded-md transition-colors duration-200 ease-in-out hover:scale-105"
                                     >
-                                        Profile
+                                        {signOutLabel}
                                     </button>
-                                )}
-                                <button
-                                    onClick={handleLogout}
-                                    className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 rounded-md transition-colors duration-200 ease-in-out hover:scale-105"
-                                >
-                                    {signOutLabel}
-                                </button>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
                 </div>
-            </div>
+            )}
         </nav>
     );
 };
