@@ -9,7 +9,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = 'Dashboard - Admin Panel';
+    document.title = 'Admin Dashboard';
     }, []);
 
   useEffect(() => {

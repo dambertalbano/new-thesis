@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 
 function AllUsers() {
   useEffect(() => {
-    document.title = 'Attendance - Admin Panel';
+    document.title = 'User List';
   }, []);
 
   return (

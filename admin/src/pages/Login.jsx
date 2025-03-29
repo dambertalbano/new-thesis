@@ -1,5 +1,5 @@
 import axios from 'axios';
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion'; // Removed toast import
 import { AdminContext } from '../context/AdminContext';
@@ -11,6 +11,10 @@ import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import Select from 'react-select';
 
 const Login = () => {
+    useEffect(() => {
+        document.title = 'SCC AMS';
+        }, []);
+
     const [state, setState] = useState('Admin');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');

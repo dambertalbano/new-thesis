@@ -1,8 +1,13 @@
 import React from 'react';
+import { useEffect } from 'react';
 import { AddEmployeeCard, AddStudentCard, AddTeachersCard } from '../../components/UserCard';
 import { motion } from 'framer-motion';
 
 const AddUsers = () => {
+    useEffect(() => {
+        document.title = 'Add User';
+    }, []);
+
     return (
         <div className="flex flex-col items-center justify-center min-h-screen w-full bg-gray-100 p-6">
             <motion.div
