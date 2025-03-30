@@ -86,6 +86,27 @@ const TeacherContextProvider = (props) => {
         }
     }, [backendUrl, dToken, updateDToken, setDashData]);
 
+    const updateTeacherByProfile = useCallback(async (teacherId, updates) => {
+        try {
+            const { data } = await axios.put(`${backendUrl}/api/teacher/profile/${teacherId}`, updates, {
+                headers: {
+                    Authorization: `Bearer ${dToken}`,
+                },
+            });
+            if (data.success) {
+                toast.success(data.message || 'Teacher profile updated successfully!');
+                return true;
+            } else {
+                toast.error(data.message || 'Failed to update teacher profile.');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error updating teacher profile:', error);
+            toast.error(error.response?.data?.message || 'Failed to update teacher profile.');
+            return false;
+        }
+    }, [backendUrl, dToken]);
+
     const value = {
         dToken,
         setDToken: updateDToken,
@@ -110,6 +131,7 @@ const TeacherContextProvider = (props) => {
         addTeacherSubjects,
         removeTeacherSubjects,
         editTeacherSubjects,
+        updateTeacherByProfile,
     };
 
     return (

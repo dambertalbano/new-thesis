@@ -26,17 +26,7 @@ const loginTeacher = async (req, res) => {
         }
 
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
-        // Update signInTime and reset signOutTime only if it's null
-        const updateData = {
-            signInTime: new Date(),
-        };
-        // Only reset signOutTime if it's not already set
-        const existingUser = await teacherModel.findById(user._id).lean();
-        if (!existingUser?.signOutTime) {
-            updateData.signOutTime = null;
-        }
 
-        await teacherModel.findByIdAndUpdate(user._id, updateData);
         res.json({ success: true, token });
     } catch (error) {
         console.error("Login error:", error);

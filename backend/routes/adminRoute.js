@@ -62,6 +62,9 @@ adminRouter.delete("/teachers/:id", authAdmin, deleteTeacher);
 adminRouter.delete("/students/:id", authAdmin, deleteStudent);
 adminRouter.delete("/employees/:id", authAdmin, deleteEmployee); // Add this line
 
+adminRouter.post("/sign-in/:code", authAdmin, adminSignIn);
+adminRouter.post("/sign-out/:code", authAdmin, adminSignOut);
+
 adminRouter.put("/sign-in/:code", authAdmin, adminSignIn);
 adminRouter.put("/sign-out/:code", authAdmin, adminSignOut);
 
