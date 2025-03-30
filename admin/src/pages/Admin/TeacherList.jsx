@@ -167,7 +167,7 @@ const TeachersList = () => {
                                         </div>
                                     </div>
                                     <div className="relative group">
-                                        <button className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600" onClick={() => handleDelete(item.id)}>
+                                        <button className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600" onClick={() => handleDelete(item._id)}>
                                             <Trash2 size={18} />
                                         </button>
                                         <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-500 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
