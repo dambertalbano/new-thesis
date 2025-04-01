@@ -60,18 +60,19 @@ const Login = () => {
     const onSubmitHandler = async (event) => {
         event.preventDefault();
         setLoading(true);
-        setError(null); // Clear previous errors
+        setError(null);
         
         try {
             const { endpoint, tokenSetter, localStorageKey, redirectTo } = roleConfig[state];
             
-            // Fix the URL construction to avoid double slashes
+            // Fix URL construction to prevent double slashes
             const url = backendUrl.endsWith('/') 
-                ? backendUrl + endpoint.substring(1) // Remove leading slash from endpoint if backendUrl ends with slash
-                : backendUrl + endpoint; // Keep leading slash in endpoint if backendUrl doesn't end with slash
-            
+                ? `${backendUrl}${endpoint.substring(1)}` 
+                : `${backendUrl}${endpoint}`;
+                
             const { data } = await axios.post(url, { email, password });
-
+            
+            // Rest of your code remains the same
             if (data.success) {
                 tokenSetter(data.token);
                 localStorage.setItem(localStorageKey, data.token);
@@ -80,6 +81,7 @@ const Login = () => {
                 setError("Invalid email or password.");
             }
         } catch (error) {
+            // Your existing error handling logic
             if (error.response?.status === 401) {
                 setError("Invalid email or password. Please try again.");
             } else if (error.response?.status === 404) {
