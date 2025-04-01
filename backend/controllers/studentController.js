@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import mongoose from 'mongoose';
-import attendanceModel from "../models/attendanceModel.js"; // Import attendance model
+import attendanceModel from "../models/attendanceModel.js";
 import studentModel from "../models/studentModel.js";
 
 const handleControllerError = (res, error, message = 'An error occurred') => {
@@ -9,7 +9,6 @@ const handleControllerError = (res, error, message = 'An error occurred') => {
     res.status(500).json({ success: false, message: message, error: error.message });
 };
 
-// API for student Login
 const loginStudent = async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -30,12 +29,11 @@ const loginStudent = async (req, res) => {
             return res.status(401).json({ success: false, message: "Invalid credentials" });
         }
 
-        const token = jwt.sign({ id: user._id, role: 'student' }, process.env.JWT_SECRET); // Include role in token
+        const token = jwt.sign({ id: user._id, role: 'student' }, process.env.JWT_SECRET);
 
         res.json({ success: true, token });
     } catch (error) {
-        console.error("Login error:", error);
-        res.status(500).json({ success: false, message: error.message });
+        handleControllerError(res, error, "Login error");
     }
 };
 
@@ -59,7 +57,6 @@ const studentProfile = async (req, res) => {
     }
 };
 
-// API to get all students list for Frontend
 const studentList = async (req, res) => {
     try {
         const students = await studentModel.find({}).select(['-password', '-email']).lean();
@@ -69,15 +66,14 @@ const studentList = async (req, res) => {
     }
 };
 
-// API to update student profile
 const updateStudentProfile = async (req, res) => {
     try {
-        const { id } = req.student; // Assuming you have student info in req.student from authStudent middleware
+        const { id } = req.student;
         const updates = req.body;
 
         const updatedStudent = await studentModel.findByIdAndUpdate(id, updates, {
-            new: true, // Return the updated document
-            runValidators: true // Ensure schema validation
+            new: true,
+            runValidators: true
         }).select('-password').lean();
 
         if (!updatedStudent) {
@@ -91,7 +87,6 @@ const updateStudentProfile = async (req, res) => {
     }
 };
 
-// API to get students with the same education level, grade year level, and section as the student
 const getStudentsByStudent = async (req, res) => {
     try {
         const { studentId } = req.params;
@@ -106,17 +101,14 @@ const getStudentsByStudent = async (req, res) => {
             return res.status(404).json({ success: false, message: "Student not found" });
         }
 
-        // Extract education level, grade year level, and section from the student's profile
         const { educationLevel, gradeYearLevel, section } = student;
 
-        // Build the query to find matching students
         const query = {
             educationLevel: educationLevel,
             gradeYearLevel: gradeYearLevel,
             section: section
         };
 
-        // Find students matching the student's education level, grade year level, and section
         const students = await studentModel.find(query).select(['-password', '-email']).lean();
 
         res.json({ success: true, students });
@@ -125,33 +117,26 @@ const getStudentsByStudent = async (req, res) => {
     }
 };
 
-// API to get attendance records for the logged-in student
 const getStudentAttendance = async (req, res) => {
     try {
         const studentId = req.student.id;
-
-        console.log("Student ID from req.student:", studentId);
 
         if (!mongoose.Types.ObjectId.isValid(studentId)) {
             return res.status(400).json({ success: false, message: 'Invalid student ID' });
         }
 
-        // Find attendance records for the student
         const attendance = await attendanceModel.find({
             user: studentId,
             userType: 'Student'
         })
             .populate('user', 'firstName middleName lastName educationLevel gradeYearLevel section')
-            .sort({ timestamp: 1 }) // Sort by timestamp
+            .sort({ timestamp: 1 })
             .lean();
-
-        console.log("Attendance records found:", attendance);
 
         if (!attendance) {
             return res.status(404).json({ success: false, message: 'No attendance records found for this student' });
         }
 
-        // Group attendance records by date
         const groupedAttendance = attendance.reduce((acc, record) => {
             const date = new Date(record.timestamp).toLocaleDateString();
             const existingRecord = acc.find(item => new Date(item.timestamp).toLocaleDateString() === date);
@@ -181,4 +166,3 @@ const getStudentAttendance = async (req, res) => {
 };
 
 export { getStudentAttendance, getStudentsByStudent, loginStudent, studentList, studentProfile, updateStudentProfile };
-

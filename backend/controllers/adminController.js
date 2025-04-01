@@ -3,18 +3,15 @@ import { v2 as cloudinary } from "cloudinary";
 import jwt from "jsonwebtoken";
 import validator from "validator";
 import Attendance from "../models/attendanceModel.js";
-import employeeModel from "../models/employeeModel.js"; // Import employee model
+import employeeModel from "../models/employeeModel.js";
 import studentModel from "../models/studentModel.js";
 import teacherModel from "../models/teacherModel.js";
 
-// API for admin login
 const loginAdmin = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // Check if credentials match the environment variables
         if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
-            // Sign the JWT with email as payload
             const token = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: '4h' });
             return res.status(200).json({ success: true, token });
         }
@@ -25,15 +22,13 @@ const loginAdmin = async (req, res) => {
     }
 };
 
-// Reusable function for finding users by code
 const findUserByCode = async (code) => {
     let user = await studentModel.findOne({ code });
     if (!user) user = await teacherModel.findOne({ code });
-    if (!user) user = await employeeModel.findOne({ code }); // Check employee model
+    if (!user) user = await employeeModel.findOne({ code });
     return user;
 };
 
-// API for signing in a user
 const adminSignIn = async (req, res) => {
     try {
         const { code } = req.params;
@@ -44,7 +39,7 @@ const adminSignIn = async (req, res) => {
             userType = 'Teacher';
         }
         if (!user) {
-            user = await employeeModel.findOne({ code }); // Check employee model
+            user = await employeeModel.findOne({ code });
             userType = 'Employee';
         }
 
@@ -57,7 +52,7 @@ const adminSignIn = async (req, res) => {
 
         const attendanceRecord = new Attendance({
             user: user._id,
-            userType: userType, // Add the userType
+            userType: userType,
             eventType: "sign-in",
         });
         await attendanceRecord.save();
@@ -68,7 +63,6 @@ const adminSignIn = async (req, res) => {
     }
 };
 
-// Similar changes for adminSignOut
 const adminSignOut = async (req, res) => {
     try {
         const { code } = req.params;
@@ -79,7 +73,7 @@ const adminSignOut = async (req, res) => {
             userType = 'Teacher';
         }
         if (!user) {
-            user = await employeeModel.findOne({ code }); // Check employee model
+            user = await employeeModel.findOne({ code });
             userType = 'Employee';
         }
 
@@ -92,7 +86,7 @@ const adminSignOut = async (req, res) => {
 
         const attendanceRecord = new Attendance({
             user: user._id,
-            userType: userType, // Add the userType
+            userType: userType,
             eventType: "sign-out",
         });
         await attendanceRecord.save();
@@ -152,7 +146,6 @@ const addStudent = async (req, res) => {
         res.status(201).json({ success: true, message: `Student Added` });
     } catch (error) {
         if (error.name === 'ValidationError') {
-            // Mongoose validation error
             const errors = {};
             for (const field in error.errors) {
                 errors[field] = error.errors[field].message;
@@ -184,7 +177,6 @@ const addTeacher = async (req, res) => {
             return res.status(400).json({ success: false, message: "Please enter a strong password" });
         }
 
-        // Hash the password using bcrypt (bcrypt handles salt generation)
         const hashedPassword = await bcrypt.hash(password, 10);
 
         const imageUpload = await cloudinary.uploader.upload(imageFile.path, { resource_type: "image" });
@@ -208,7 +200,6 @@ const addTeacher = async (req, res) => {
         res.status(201).json({ success: true, message: `Teacher Added` });
     } catch (error) {
         if (error.name === 'ValidationError') {
-            // Mongoose validation error
             const errors = {};
             for (const field in error.errors) {
                 errors[field] = error.errors[field].message;
@@ -219,7 +210,6 @@ const addTeacher = async (req, res) => {
     }
 };
 
-// API to add employee
 const addEmployee = async (req, res) => {
     try {
         const { code, firstName, middleName, lastName, email, password, number, address, position } = req.body;
@@ -244,7 +234,6 @@ const addEmployee = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Upload the image to Cloudinary from the buffer
         const imageUpload = await cloudinary.uploader.upload(imageFile.path, { resource_type: "image" });
         const imageUrl = imageUpload.secure_url;
 
@@ -267,7 +256,6 @@ const addEmployee = async (req, res) => {
         res.status(201).json({ success: true, message: `Employee Added` });
     } catch (error) {
         if (error.name === 'ValidationError') {
-            // Mongoose validation error
             const errors = {};
             for (const field in error.errors) {
                 errors[field] = error.errors[field].message;
@@ -278,7 +266,6 @@ const addEmployee = async (req, res) => {
     }
 };
 
-// API to get all users list
 const getAllUsers = async (req, res, Model, userType) => {
     try {
         const users = await Model.find({}).select('-password');
@@ -288,17 +275,14 @@ const getAllUsers = async (req, res, Model, userType) => {
     }
 };
 
-// API to get all students list for admin panel
 const allStudents = async (req, res) => {
     getAllUsers(req, res, studentModel, 'students');
 };
 
-// API to get all teachers list for admin panel
 const allTeachers = async (req, res) => {
     getAllUsers(req, res, teacherModel, 'teachers');
 };
 
-// API to get all employees list for admin panel
 const allEmployees = async (req, res) => {
     getAllUsers(req, res, employeeModel, 'employees');
 };
@@ -319,17 +303,16 @@ const getStudentByCode = async (req, res) => {
     }
 };
 
-// API to get dashboard data for admin panel
 const adminDashboard = async (req, res) => {
     try {
         const students = await studentModel.countDocuments({});
         const teachers = await teacherModel.countDocuments({});
-        const employees = await employeeModel.countDocuments({}); // Count employees
+        const employees = await employeeModel.countDocuments({});
 
         const dashData = {
             students,
             teachers,
-            employees, // Add employees count to dashboard data
+            employees,
         };
 
         res.status(200).json({ success: true, dashData });
@@ -338,15 +321,13 @@ const adminDashboard = async (req, res) => {
     }
 };
 
-// API to get user information by code
 const getUserByCode = async (req, res) => {
     const { code } = req.params;
 
     try {
-        // Find the user by code in any of the user models
         let user = await studentModel.findOne({ code });
         if (!user) user = await teacherModel.findOne({ code });
-        if (!user) user = await employeeModel.findOne({ code }); // Check employee model
+        if (!user) user = await employeeModel.findOne({ code });
 
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
@@ -355,11 +336,9 @@ const getUserByCode = async (req, res) => {
         const today = new Date();
         const signInDate = user.signInTime ? new Date(user.signInTime) : null;
 
-        // Check if it's a new day
         if (signInDate && (today.getFullYear() !== signInDate.getFullYear() ||
             today.getMonth() !== signInDate.getMonth() ||
             today.getDate() !== signInDate.getDate())) {
-            // Reset signInTime and signOutTime
             user.signInTime = null;
             user.signOutTime = null;
             await user.save();
@@ -371,7 +350,6 @@ const getUserByCode = async (req, res) => {
     }
 };
 
-// Generic function to delete a user
 const deleteUser = async (req, res, model, userType) => {
     try {
         const userId = req.params.id;
@@ -387,14 +365,13 @@ const deleteUser = async (req, res, model, userType) => {
     }
 };
 
-// Generic function to update a user
 const updateUser = async (req, res, model, userType) => {
     try {
         const userId = req.params.id;
         const updatedData = req.body;
 
         const updatedUser = await model.findByIdAndUpdate(userId, updatedData, {
-            new: true, // Return the updated user
+            new: true,
         });
 
         if (!updatedUser) {
@@ -407,35 +384,24 @@ const updateUser = async (req, res, model, userType) => {
     }
 };
 
-// API to delete Teacher
 const deleteTeacher = async (req, res) => {
     deleteUser(req, res, teacherModel, "Teacher");
 };
 
-// API to update Teacher details
 const updateTeacher = async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
 
-    console.log("Updates received:", updates);
-    console.log("req.file:", req.file);
-
     try {
-        // Handle the case where no new image is uploaded
         if (!req.file) {
             if (updates.image && typeof updates.image === 'object' && Object.keys(updates.image).length === 0) {
-                console.log("No new image uploaded, removing empty image field from updates");
                 delete updates.image;
             }
         } else {
-            // If a new image is provided, update the image
-            console.log("New image file detected");
             try {
                 const imageUpload = await cloudinary.uploader.upload(req.file.path, { resource_type: "image" });
                 updates.image = imageUpload.secure_url;
-                console.log("Image uploaded to Cloudinary:", updates.image);
             } catch (cloudinaryError) {
-                console.error("Cloudinary upload error:", cloudinaryError);
                 return res.status(500).json({ success: false, message: "Failed to upload image to Cloudinary" });
             }
         }
@@ -449,36 +415,29 @@ const updateTeacher = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Teacher not found' });
         }
 
-        console.log("Teacher profile updated successfully:", updatedTeacher);
         res.json({ success: true, message: 'Teacher updated successfully', teacher: updatedTeacher });
 
     } catch (error) {
-        console.error('Error updating teacher profile:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
 
-// API to delete Student
 const deleteStudent = async (req, res) => {
     deleteUser(req, res, studentModel, "Student");
 };
 
-// API to update Student details
 const updateStudent = async (req, res) => {
     updateUser(req, res, studentModel, "Student");
 };
 
-// API to delete Employee
 const deleteEmployee = async (req, res) => {
     deleteUser(req, res, employeeModel, "Employee");
 };
 
-// API to update Employee details
 const updateEmployee = async (req, res) => {
     updateUser(req, res, employeeModel, "Employee");
 };
 
-// API to get attendance by date
 const getAttendanceByDate = async (req, res) => {
     try {
         const date = new Date(req.query.date);
@@ -500,7 +459,7 @@ const getAttendanceByDate = async (req, res) => {
             },
         }).populate({
             path: 'user',
-            select: 'firstName lastName middleName studentNumber position' // Select the fields you want
+            select: 'firstName lastName middleName studentNumber position'
         });
 
         res.status(200).json({ success: true, attendanceRecords });
@@ -534,7 +493,7 @@ const getAttendanceRecords = async (req, res) => {
 
         const attendanceRecords = await attendanceModel.find(query).populate({
             path: 'user',
-            select: 'firstName lastName middleName studentNumber position' // Select the fields you want
+            select: 'firstName lastName middleName studentNumber position'
         });
 
         res.status(200).json({ success: true, attendanceRecords });
@@ -543,7 +502,6 @@ const getAttendanceRecords = async (req, res) => {
     }
 };
 
-// API to add class schedule to a teacher
 const addTeacherClassSchedule = async (req, res) => {
     try {
         const { teacherId } = req.params;
@@ -551,7 +509,7 @@ const addTeacherClassSchedule = async (req, res) => {
 
         const teacher = await teacherModel.findByIdAndUpdate(
             teacherId,
-            { $push: { classSchedule: classSchedule } }, // Use $push to add to the array
+            { $push: { classSchedule: classSchedule } },
             { new: true }
         );
 
@@ -565,15 +523,14 @@ const addTeacherClassSchedule = async (req, res) => {
     }
 };
 
-// API to remove class schedule from a teacher
 const removeTeacherClassSchedule = async (req, res) => {
     try {
         const { teacherId } = req.params;
-        const { classSchedule } = req.body; // Assuming you pass the classSchedule to remove in the body
+        const { classSchedule } = req.body;
 
         const teacher = await teacherModel.findByIdAndUpdate(
             teacherId,
-            { $pull: { classSchedule: classSchedule } }, // Use $pull to remove from the array
+            { $pull: { classSchedule: classSchedule } },
             { new: true }
         );
 
@@ -587,7 +544,6 @@ const removeTeacherClassSchedule = async (req, res) => {
     }
 };
 
-// API to edit class schedule for a teacher
 const editTeacherClassSchedule = async (req, res) => {
     try {
         const { teacherId } = req.params;
@@ -599,17 +555,14 @@ const editTeacherClassSchedule = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Teacher not found' });
         }
 
-        // Find the index of the old class schedule
         const index = teacher.classSchedule.indexOf(oldClassSchedule);
 
         if (index === -1) {
             return res.status(404).json({ success: false, message: 'Old class schedule not found' });
         }
 
-        // Replace the old class schedule with the new one
         teacher.classSchedule[index] = newClassSchedule;
 
-        // Save the updated teacher
         const updatedTeacher = await teacher.save();
 
         res.status(200).json({ success: true, message: 'Class schedule updated successfully', teacher: updatedTeacher });
@@ -618,7 +571,6 @@ const editTeacherClassSchedule = async (req, res) => {
     }
 };
 
-// API to add education level to a teacher
 const addTeacherEducationLevel = async (req, res) => {
     try {
         const { teacherId } = req.params;
@@ -626,7 +578,7 @@ const addTeacherEducationLevel = async (req, res) => {
 
         const teacher = await teacherModel.findByIdAndUpdate(
             teacherId,
-            { $push: { educationLevel: educationLevel } }, // Use $push to add to the array
+            { $push: { educationLevel: educationLevel } },
             { new: true }
         );
 
@@ -640,15 +592,14 @@ const addTeacherEducationLevel = async (req, res) => {
     }
 };
 
-// API to remove education level from a teacher
 const removeTeacherEducationLevel = async (req, res) => {
     try {
         const { teacherId } = req.params;
-        const { educationLevel } = req.body; // Assuming you pass the educationLevel to remove in the body
+        const { educationLevel } = req.body;
 
         const teacher = await teacherModel.findByIdAndUpdate(
             teacherId,
-            { $pull: { educationLevel: educationLevel } }, // Use $pull to remove from the array
+            { $pull: { educationLevel: educationLevel } },
             { new: true }
         );
 
@@ -662,7 +613,6 @@ const removeTeacherEducationLevel = async (req, res) => {
     }
 };
 
-// API to edit education level for a teacher
 const editTeacherEducationLevel = async (req, res) => {
     try {
         const { teacherId } = req.params;
@@ -674,17 +624,14 @@ const editTeacherEducationLevel = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Teacher not found' });
         }
 
-        // Find the index of the old education level
         const index = teacher.educationLevel.indexOf(oldEducationLevel);
 
         if (index === -1) {
             return res.status(404).json({ success: false, message: 'Old education level not found' });
         }
 
-        // Replace the old education level with the new one
         teacher.educationLevel[index] = newEducationLevel;
 
-        // Save the updated teacher
         const updatedTeacher = await teacher.save();
 
         res.status(200).json({ success: true, message: 'Education level updated successfully', teacher: updatedTeacher });
@@ -693,7 +640,6 @@ const editTeacherEducationLevel = async (req, res) => {
     }
 };
 
-// API to add grade year level to a teacher
 const addTeacherGradeYearLevel = async (req, res) => {
     try {
         const { teacherId } = req.params;
@@ -701,7 +647,7 @@ const addTeacherGradeYearLevel = async (req, res) => {
 
         const teacher = await teacherModel.findByIdAndUpdate(
             teacherId,
-            { $push: { gradeYearLevel: gradeYearLevel } }, // Use $push to add to the array
+            { $push: { gradeYearLevel: gradeYearLevel } },
             { new: true }
         );
 
@@ -715,15 +661,14 @@ const addTeacherGradeYearLevel = async (req, res) => {
     }
 };
 
-// API to remove grade year level from a teacher
 const removeTeacherGradeYearLevel = async (req, res) => {
     try {
         const { teacherId } = req.params;
-        const { gradeYearLevel } = req.body; // Assuming you pass the gradeYearLevel to remove in the body
+        const { gradeYearLevel } = req.body;
 
         const teacher = await teacherModel.findByIdAndUpdate(
             teacherId,
-            { $pull: { gradeYearLevel: gradeYearLevel } }, // Use $pull to remove from the array
+            { $pull: { gradeYearLevel: gradeYearLevel } },
             { new: true }
         );
 
@@ -737,7 +682,6 @@ const removeTeacherGradeYearLevel = async (req, res) => {
     }
 };
 
-// API to edit grade year level for a teacher
 const editTeacherGradeYearLevel = async (req, res) => {
     try {
         const { teacherId } = req.params;
@@ -749,17 +693,14 @@ const editTeacherGradeYearLevel = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Teacher not found' });
         }
 
-        // Find the index of the old grade year level
         const index = teacher.gradeYearLevel.indexOf(oldGradeYearLevel);
 
         if (index === -1) {
             return res.status(404).json({ success: false, message: 'Old grade year level not found' });
         }
 
-        // Replace the old grade year level with the new one
         teacher.gradeYearLevel[index] = newGradeYearLevel;
 
-        // Save the updated teacher
         const updatedTeacher = await teacher.save();
 
         res.status(200).json({ success: true, message: 'Grade year level updated successfully', teacher: updatedTeacher });
@@ -768,7 +709,6 @@ const editTeacherGradeYearLevel = async (req, res) => {
     }
 };
 
-// API to add section to a teacher
 const addTeacherSection = async (req, res) => {
     try {
         const { teacherId } = req.params;
@@ -776,7 +716,7 @@ const addTeacherSection = async (req, res) => {
 
         const teacher = await teacherModel.findByIdAndUpdate(
             teacherId,
-            { $push: { section: section } }, // Use $push to add to the array
+            { $push: { section: section } },
             { new: true }
         );
 
@@ -790,15 +730,14 @@ const addTeacherSection = async (req, res) => {
     }
 };
 
-// API to remove section from a teacher
 const removeTeacherSection = async (req, res) => {
     try {
         const { teacherId } = req.params;
-        const { section } = req.body; // Assuming you pass the section to remove in the body
+        const { section } = req.body;
 
         const teacher = await teacherModel.findByIdAndUpdate(
             teacherId,
-            { $pull: { section: section } }, // Use $pull to remove from the array
+            { $pull: { section: section } },
             { new: true }
         );
 
@@ -812,7 +751,6 @@ const removeTeacherSection = async (req, res) => {
     }
 };
 
-// API to add subjects to a teacher
 const addTeacherSubjects = async (req, res) => {
     try {
         const { teacherId } = req.params;
@@ -834,7 +772,6 @@ const addTeacherSubjects = async (req, res) => {
     }
 };
 
-// API to remove subjects from a teacher
 const removeTeacherSubjects = async (req, res) => {
     try {
         const { teacherId } = req.params;
@@ -856,7 +793,6 @@ const removeTeacherSubjects = async (req, res) => {
     }
 };
 
-// API to edit subjects for a teacher
 const editTeacherSubjects = async (req, res) => {
     try {
         const { teacherId } = req.params;
@@ -868,17 +804,14 @@ const editTeacherSubjects = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Teacher not found' });
         }
 
-        // Find the index of the old subjects
         const index = teacher.subjects.indexOf(oldSubjects);
 
         if (index === -1) {
             return res.status(404).json({ success: false, message: 'Old subjects not found' });
         }
 
-        // Replace the old subjects with the new one
         teacher.subjects[index] = newSubjects;
 
-        // Save the updated teacher
         const updatedTeacher = await teacher.save();
 
         res.status(200).json({ success: true, message: 'Subjects updated successfully', teacher: updatedTeacher });
@@ -887,26 +820,22 @@ const editTeacherSubjects = async (req, res) => {
     }
 };
 
-// API to update Teacher profile
 const updateTeacherByProfile = async (req, res) => {
     try {
         const teacherId = req.params.id;
         const updates = req.body;
 
-        // Find the teacher by ID
         const teacher = await teacherModel.findById(teacherId);
 
         if (!teacher) {
             return res.status(404).json({ success: false, message: 'Teacher not found' });
         }
 
-        // If a new image is provided, update the image
         if (req.file) {
             const imageUpload = await cloudinary.uploader.upload(req.file.path, { resource_type: "image" });
             teacher.image = imageUpload.secure_url;
         }
 
-        // Update the teacher's profile
         teacher.firstName = updates.firstName || teacher.firstName;
         teacher.middleName = updates.middleName || teacher.middleName;
         teacher.lastName = updates.lastName || teacher.lastName;
@@ -915,7 +844,6 @@ const updateTeacherByProfile = async (req, res) => {
         teacher.address = updates.address || teacher.address;
         teacher.code = updates.code || teacher.code;
 
-        // Save the updated teacher
         await teacher.save();
 
         res.status(200).json({ success: true, message: 'Teacher profile updated successfully' });
@@ -935,9 +863,9 @@ export {
     adminDashboard,
     adminSignIn,
     adminSignOut, allEmployees, allStudents,
-    allTeachers, deleteEmployee, // Add allEmployees
+    allTeachers, deleteEmployee,
     deleteStudent,
-    deleteTeacher, // Add deleteEmployee
+    deleteTeacher,
     editTeacherClassSchedule,
     editTeacherEducationLevel,
     editTeacherGradeYearLevel,

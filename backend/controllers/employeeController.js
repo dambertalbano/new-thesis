@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import mongoose from 'mongoose';
-import attendanceModel from "../models/attendanceModel.js"; // Import attendance model
+import attendanceModel from "../models/attendanceModel.js";
 import employeeModel from "../models/employeeModel.js";
 
 const handleControllerError = (res, error, message = 'An error occurred') => {
@@ -9,7 +9,6 @@ const handleControllerError = (res, error, message = 'An error occurred') => {
     res.status(500).json({ success: false, message: message, error: error.message });
 };
 
-// API for employee Login
 const loginEmployee = async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -30,7 +29,7 @@ const loginEmployee = async (req, res) => {
             return res.status(401).json({ success: false, message: "Invalid credentials" });
         }
 
-        const token = jwt.sign({ id: user._id, role: 'employee' }, process.env.JWT_SECRET); // Include role in token
+        const token = jwt.sign({ id: user._id, role: 'employee' }, process.env.JWT_SECRET);
 
         res.json({ success: true, token });
     } catch (error) {
@@ -38,7 +37,6 @@ const loginEmployee = async (req, res) => {
     }
 };
 
-// API to get all employees list for Frontend
 const employeeList = async (req, res) => {
     try {
         const employees = await employeeModel.find({}).select(['-password', '-email']).lean();
@@ -48,7 +46,6 @@ const employeeList = async (req, res) => {
     }
 };
 
-// API to get employee profile for Employee Panel
 const employeeProfile = async (req, res) => {
     try {
         const employeeId = req.employee.id;
@@ -69,21 +66,19 @@ const employeeProfile = async (req, res) => {
     }
 };
 
-// API to update employee profile
 const updateEmployeeProfile = async (req, res) => {
     try {
-        const { id } = req.employee; // Assuming you have employee info in req.employee from authEmployee middleware
+        const { id } = req.employee;
         const updates = req.body;
 
-        // Hash the password if it's being updated
         if (updates.password) {
             const salt = await bcrypt.genSalt(10);
             updates.password = await bcrypt.hash(updates.password, salt);
         }
 
         const updatedEmployee = await employeeModel.findByIdAndUpdate(id, updates, {
-            new: true, // Return the updated document
-            runValidators: true // Ensure schema validation
+            new: true,
+            runValidators: true
         }).select('-password').lean();
 
         if (!updatedEmployee) {
@@ -97,50 +92,72 @@ const updateEmployeeProfile = async (req, res) => {
     }
 };
 
-// API to get attendance records for the logged-in employee
-const getEmployeeAttendance = async (req, res) => {
+const getEmployeesByEmployee = async (req, res) => {
     try {
-        const employeeId = req.employee.id;
-
-        console.log("Employee ID from req.employee:", employeeId);
+        const { employeeId } = req.params;
 
         if (!mongoose.Types.ObjectId.isValid(employeeId)) {
             return res.status(400).json({ success: false, message: 'Invalid employee ID' });
         }
 
-        // Find attendance records for the employee
+        const employee = await employeeModel.findById(employeeId).lean();
+
+        if (!employee) {
+            return res.status(404).json({ success: false, message: "Employee not found" });
+        }
+
+        const { educationLevel, gradeYearLevel, section } = employee;
+
+        const query = {
+            $or: [
+                { educationLevel: { $in: educationLevel } },
+                { gradeYearLevel: { $in: gradeYearLevel } },
+                { section: { $in: section } }
+            ]
+        };
+
+        const employees = await employeeModel.find(query).select(['-password', '-email']).lean();
+
+        res.json({ success: true, employees });
+    } catch (error) {
+        handleControllerError(res, error, "Error getting employees by employee");
+    }
+};
+
+const getEmployeeAttendance = async (req, res) => {
+    try {
+        const employeeId = req.employee.id;
+
+        if (!mongoose.Types.ObjectId.isValid(employeeId)) {
+            return res.status(400).json({ success: false, message: 'Invalid employee ID' });
+        }
+
         const attendance = await attendanceModel.find({
             user: employeeId,
             userType: 'Employee'
         })
             .populate('user', 'firstName middleName lastName position')
-            .sort({ timestamp: 1 }) // Sort by timestamp
+            .sort({ timestamp: 1 })
             .lean();
-
-        console.log("Attendance records found:", attendance);
 
         if (!attendance) {
             return res.status(404).json({ success: false, message: 'No attendance records found for this employee' });
         }
 
-        // Group attendance records by date
         const groupedAttendance = attendance.reduce((acc, record) => {
             const date = new Date(record.timestamp).toLocaleDateString();
 
-            // Find an existing record with the same date and user
             const existingRecord = acc.find(item =>
                 new Date(item.date).toLocaleDateString() === date && item.user._id.toString() === record.user._id.toString()
             );
 
             if (existingRecord) {
-                // Update existing record
                 if (record.eventType === 'sign-in' && !existingRecord.signInTime) {
                     existingRecord.signInTime = record.timestamp;
                 } else if (record.eventType === 'sign-out' && !existingRecord.signOutTime) {
                     existingRecord.signOutTime = record.timestamp;
                 }
             } else {
-                // Create a new record
                 acc.push({
                     user: record.user,
                     date: record.timestamp,
@@ -158,4 +175,4 @@ const getEmployeeAttendance = async (req, res) => {
     }
 };
 
-export { employeeList, employeeProfile, getEmployeeAttendance, loginEmployee, updateEmployeeProfile };
+export { employeeList, employeeProfile, getEmployeeAttendance, getEmployeesByEmployee, loginEmployee, updateEmployeeProfile };
