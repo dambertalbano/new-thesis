@@ -1,14 +1,13 @@
+import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import axios from 'axios';
-import React, { useContext, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion'; // Removed toast import
+import React, { useContext, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import bgSolid from '../assets/bg-solid.png';
 import { AdminContext } from '../context/AdminContext';
 import { EmployeeContext } from '../context/EmployeeContext';
 import { StudentContext } from '../context/StudentContext';
 import { TeacherContext } from '../context/TeacherContext';
-import bgSolid from '../assets/bg-solid.png';
-import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
-import Select from 'react-select';
 
 const Login = () => {
     useEffect(() => {
