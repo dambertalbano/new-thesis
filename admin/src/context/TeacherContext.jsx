@@ -2,7 +2,32 @@ import axios from 'axios';
 import { createContext, useCallback, useState } from 'react';
 import { toast } from 'react-toastify';
 
-export const TeacherContext = createContext();
+export const TeacherContext = createContext({
+    dToken: null,
+    setDToken: () => { },
+    backendUrl: '',
+    dashData: null,
+    setDashData: () => { },
+    loginTeacher: () => Promise.resolve(false),
+    logoutTeacher: () => Promise.resolve(false),
+    updateTeacherByProfile: () => Promise.resolve(false),
+    addTeacherClassSchedule: () => Promise.resolve(false),
+    removeTeacherClassSchedule: () => Promise.resolve(false),
+    editTeacherClassSchedule: () => Promise.resolve(false),
+    addTeacherEducationLevel: () => Promise.resolve(false),
+    removeTeacherEducationLevel: () => Promise.resolve(false),
+    editTeacherEducationLevel: () => Promise.resolve(false),
+    addTeacherGradeYearLevel: () => Promise.resolve(false),
+    removeTeacherGradeYearLevel: () => Promise.resolve(false),
+    editTeacherGradeYearLevel: () => Promise.resolve(false),
+    addTeacherSection: () => Promise.resolve(false),
+    removeTeacherSection: () => Promise.resolve(false),
+    addTeacherSubjects: () => Promise.resolve(false),
+    removeTeacherSubjects: () => Promise.resolve(false),
+    editTeacherSubjects: () => Promise.resolve(false),
+    updateTeacherTeachingAssignments: () => Promise.resolve(false),
+    fetchAttendanceRecords: () => Promise.resolve(null), // Changed to null
+});
 
 const TeacherContextProvider = (props) => {
     const backendUrl = import.meta.env.VITE_BACKEND_URL;
@@ -24,6 +49,10 @@ const TeacherContextProvider = (props) => {
         }
     }, [setDToken]);
 
+    const handleApiError = useCallback((error, message = "An error occurred") => {
+        console.error(message + ":", error);
+        toast.error(message + ": " + error.message);
+    }, []);
 
     const loginTeacher = useCallback(async (email, password) => {
         try {
@@ -386,11 +415,67 @@ const TeacherContextProvider = (props) => {
         }
     }, [backendUrl, dToken]);
 
+    const fetchAttendanceRecords = useCallback(async (date, userType = 'Teacher') => {
+        try {
+            let isoDate;
+            if (date instanceof Date) {
+                isoDate = date.toISOString();
+            } else if (typeof date === 'string') {
+                isoDate = date; // Use the date string directly
+            } else {
+                console.error("Invalid date provided:", date);
+                return null;
+            }
+            const response = await axios.get(`${backendUrl}/api/teacher/attendance?date=${isoDate}&userType=${userType}`, {
+                headers: { Authorization: `Bearer ${dToken}` },
+            });
+
+            if (response.data.success) {
+                return response.data.attendanceRecords;
+            } else {
+                toast.error(response.data.message || "Failed to fetch attendance records");
+                return null; // Indicate failure
+            }
+        } catch (error) {
+            handleApiError(error, 'Error fetching attendance records');
+            return null; // Indicate failure
+        }
+    }, [dToken, backendUrl, handleApiError]);
+
+    const updateTeacherTeachingAssignments = useCallback(async (teachingAssignments) => {
+        try {
+            const response = await axios.put(
+                `${backendUrl}/api/teacher/profile/teaching-assignments`,
+                { teachingAssignments },
+                {
+                    headers: {
+                        Authorization: `Bearer ${dToken}`,
+                    },
+                }
+            );
+            if (response.data.success) {
+                toast.success("Teaching assignments updated successfully!");
+                return true;
+            } else {
+                toast.error("Failed to update teaching assignments.");
+                return false;
+            }
+        } catch (error) {
+            console.error(
+                "Error updating teacher teaching assignments:",
+                error.response ? error.response.data : error.message
+            );
+            toast.error(error.response?.data?.message || "Failed to update teaching assignments.");
+            return false;
+        }
+    }, [backendUrl, dToken]);
+
     const value = {
         dToken,
         setDToken: updateDToken,
         backendUrl,
         dashData,
+        fetchAttendanceRecords,
         setDashData,
         loginTeacher,
         logoutTeacher,
@@ -409,6 +494,7 @@ const TeacherContextProvider = (props) => {
         addTeacherSubjects,
         removeTeacherSubjects,
         editTeacherSubjects,
+        updateTeacherTeachingAssignments,
     };
 
     return (

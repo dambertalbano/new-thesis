@@ -8,6 +8,7 @@ import employeeRouter from './routes/employeeRoute.js';
 import studentRouter from "./routes/studentRoute.js";
 import teacherRouter from './routes/teacherRoute.js';
 
+
 // app config
 const app = express();
 const port = process.env.PORT || 4000;

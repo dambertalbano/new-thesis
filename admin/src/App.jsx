@@ -1,4 +1,4 @@
-import React, { useContext, useEffect } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import EditCard from './components/EditCard';
 import Navbar from './components/Navbar';
@@ -23,11 +23,14 @@ import EmployeeList from './pages/Admin/EmployeeList';
 import RFID_Scan from './pages/Admin/RFID_Scan';
 import StudentsList from './pages/Admin/StudentsList';
 import TeachersList from './pages/Admin/TeacherList';
+import EmployeeAttendance from './pages/Employee/EmployeeAttendance';
 import EmployeeDashboard from './pages/Employee/EmployeeDashboard';
 import EmployeeProfile from './pages/Employee/EmployeeProfile';
 import Login from './pages/Login';
+import StudentAttendance from './pages/Student/StudentAttendance';
 import StudentDashboard from './pages/Student/StudentDashboard';
 import StudentProfile from './pages/Student/StudentProfile';
+import TeacherAttendance from './pages/Teacher/TeacherAttendance';
 import TeacherDashboard from './pages/Teacher/TeacherDashboard';
 import TeacherProfile from './pages/Teacher/TeacherProfile';
 
@@ -38,6 +41,27 @@ const App = () => {
     const { eToken } = useContext(EmployeeContext);
     const navigate = useNavigate();
     const location = useLocation();
+
+    const [navbarHeight, setNavbarHeight] = useState(0);
+    const navbarRef = useRef(null);
+
+    useEffect(() => {
+        const updateNavbarHeight = () => {
+            if (navbarRef.current) {
+                setNavbarHeight(navbarRef.current.offsetHeight);
+            }
+        };
+
+        // Initial update
+        updateNavbarHeight();
+
+        // Update on resize
+        window.addEventListener('resize', updateNavbarHeight);
+
+        return () => {
+            window.removeEventListener('resize', updateNavbarHeight);
+        };
+    }, []);
 
     useEffect(() => {
         console.log('App.jsx useEffect triggered');
@@ -85,45 +109,48 @@ const App = () => {
 
     return (
         <>
-            
-            {(aToken || dToken || sToken || eToken) ? (
-                <div className='bg-[#F8F9FD]'>
-                    <Navbar onLogout={handleLogout} />
-                    <div className='flex items-start'>
-
-                        <Routes>
-                            <Route path='/admin-dashboard' element={<Dashboard />} />
-                            <Route path='/teacher-dashboard' element={<TeacherDashboard />} />
-                            <Route path='/student-dashboard' element={<StudentDashboard />} />
-                            <Route path='/employee-dashboard' element={<EmployeeDashboard />} />
-                            <Route path='/rfid-scan' element={<RFID_Scan />} />
-                            <Route path='/add-student' element={<AddStudent />} />
-                            <Route path='/add-teacher' element={<AddTeacher />} />
-                            <Route path='/add-employee' element={<AddEmployee />} />
-                            <Route path='/student-list' element={<StudentsList />} />
-                            <Route path='/teacher-list' element={<TeachersList />} />
-                            <Route path='/employee-list' element={<EmployeeList />} />
-                            <Route path='/user-card' element={<UserCard />} />
-                            <Route path='/edit-card' element={<EditCard />} />
-                            <Route path='/attendance-all' element={<AllUserAttendanceCard />} />
-                            <Route path='/attendance' element={<Attendance />} />
-                            <Route path='/attendance-student' element={<AttendanceStudentCard />} />
-                            <Route path='/attendance-teacher' element={<AttendanceTeacherCard />} />
-                            <Route path='/attendance-employee' element={<AttendanceEmployeeCard />} />
-                            <Route path='/student-profile' element={<StudentProfile />} />
-                            <Route path='/employee-profile' element={<EmployeeProfile />} />
-                            <Route path='/teacher-profile' element={<TeacherProfile />} />
-                            <Route path='/all-users' element={<AllUsers />} />
-                            <Route path='/add-users' element={<AddUsers />} />
-                            <Route path='/edit-users' element={<EditUser />} />
-                        </Routes>
+            <Navbar ref={navbarRef} />
+            <div style={{ paddingTop: `${navbarHeight}px` }}>
+                {(aToken || dToken || sToken || eToken) ? (
+                    <div className='bg-[#F8F9FD]'>
+                        <div className='flex items-start'>
+                            <Routes>
+                                <Route path='/admin-dashboard' element={<Dashboard />} />
+                                <Route path='/teacher-dashboard' element={<TeacherDashboard />} />
+                                <Route path='/student-dashboard' element={<StudentDashboard />} />
+                                <Route path='/employee-dashboard' element={<EmployeeDashboard />} />
+                                <Route path='/rfid-scan' element={<RFID_Scan />} />
+                                <Route path='/add-student' element={<AddStudent />} />
+                                <Route path='/add-teacher' element={<AddTeacher />} />
+                                <Route path='/add-employee' element={<AddEmployee />} />
+                                <Route path='/student-list' element={<StudentsList />} />
+                                <Route path='/teacher-list' element={<TeachersList />} />
+                                <Route path='/employee-list' element={<EmployeeList />} />
+                                <Route path='/user-card' element={<UserCard />} />
+                                <Route path='/edit-card' element={<EditCard />} />
+                                <Route path='/attendance-all' element={<AllUserAttendanceCard />} />
+                                <Route path='/attendance' element={<Attendance />} />
+                                <Route path='/attendance-student' element={<AttendanceStudentCard />} />
+                                <Route path='/attendance-teacher' element={<AttendanceTeacherCard />} />
+                                <Route path='/attendance-employee' element={<AttendanceEmployeeCard />} />
+                                <Route path='/att1' element={<TeacherAttendance />} />
+                                <Route path='/att2' element={<StudentAttendance />} />
+                                <Route path='/att3' element={<EmployeeAttendance />} />
+                                <Route path='/student-profile' element={<StudentProfile />} />
+                                <Route path='/employee-profile' element={<EmployeeProfile />} />
+                                <Route path='/teacher-profile' element={<TeacherProfile />} />
+                                <Route path='/all-users' element={<AllUsers />} />
+                                <Route path='/add-users' element={<AddUsers />} />
+                                <Route path='/edit-users' element={<EditUser />} />
+                            </Routes>
+                        </div>
                     </div>
-                </div>
-            ) : (
-                <Routes>
-                    <Route path="/" element={<Login />} />
-                </Routes>
-            )}
+                ) : (
+                    <Routes>
+                        <Route path="/" element={<Login />} />
+                    </Routes>
+                )}
+            </div>
         </>
     );
 };

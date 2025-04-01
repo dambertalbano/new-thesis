@@ -35,6 +35,16 @@ const teacherSchema = new mongoose.Schema({
     },
     gradeYearLevel: { type: [String], trim: true },
     section: { type: [String], trim: true },
+    teachingAssignments: [{  // Add teachingAssignments field
+        educationLevel: {
+            type: String,
+            enum: ["Primary", "Secondary", "Tertiary"],
+            trim: true,
+        },
+        gradeYearLevel: { type: String, trim: true },
+        section: { type: String, trim: true },
+        _id: { type: mongoose.Schema.Types.ObjectId, default: () => new mongoose.Types.ObjectId() } // Ensure each assignment has an _id
+    }],
 },
     { timestamps: true }
 );

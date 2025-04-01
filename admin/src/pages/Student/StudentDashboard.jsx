@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { Loader } from "lucide-react";
 import React, { useCallback, useContext, useEffect, useState } from 'react';
-import { FiInfo } from 'react-icons/fi'; // Import FiInfo icon
+import { FiInfo } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import { StudentContext } from '../../context/StudentContext';
 
@@ -46,11 +47,18 @@ const StudentDashboard = () => {
         <div className="flex justify-center items-center min-h-screen w-full bg-gray-100 p-4">
             <div className="bg-white p-8 rounded-xl shadow-lg text-center max-w-2xl w-full">
                 <div className="flex items-center justify-center mb-4 text-customRed">
-                    <FiInfo className="w-8 h-8" />
-                    <h2 className="text-3xl font-semibold ml-2">Student Information</h2>
+                    {!loading && (
+                        <div className="flex items-center justify-center mb-4 text-customRed">
+                            <FiInfo className="w-8 h-8" />
+                            <h2 className="text-3xl font-bold ml-2">Student Information</h2>
+                        </div>
+                    )}
                 </div>
                 {loading ? (
-                    <p className="text-blue-500 text-center">⏳ Loading...</p>
+                    <div className="flex justify-center items-center">
+                        <Loader className="w-5 h-5 text-customRed animate-spin mr-2" />
+                        <span className="text-customRed">Scanning ...</span>
+                    </div>
                 ) : error ? (
                     <p className="text-red-500 text-center">{error}</p>
                 ) : studentInfo ? (
@@ -65,7 +73,7 @@ const StudentDashboard = () => {
 
 const UserInfoDisplay = ({ userInfo, formatName }) => {
     const formatDateTime = (dateTimeString) => {
-        if (!dateTimeString) return 'N/A';
+        if (!dateTimeString) return 'No Data';
         try {
             const date = new Date(dateTimeString);
             return date.toLocaleDateString('en-US', {
@@ -87,7 +95,7 @@ const UserInfoDisplay = ({ userInfo, formatName }) => {
             <div className="flex flex-wrap items-center gap-4">
                 <img src={userInfo?.image || 'blank-image-url'} alt="Student" className="w-28 h-28 rounded-full border" />
                 <div className="flex-1 min-w-0">
-                    <p className="text-xl font-semibold truncate">{formatName(userInfo)}</p>
+                    <p className="text-xl font-bold truncate">{formatName(userInfo)}</p>
                     <p className="text-sm text-gray-500">{userInfo?.email}</p>
                 </div>
             </div>
@@ -95,8 +103,8 @@ const UserInfoDisplay = ({ userInfo, formatName }) => {
                 <p><strong>Email:</strong> {userInfo?.email}</p>
                 <p><strong>Address:</strong> {userInfo?.address}</p>
                 <p><strong>Contact Number:</strong> {userInfo?.number}</p>
-                {userInfo?.gradeYearLevel && <p><strong>Grade/Year Level:</strong> {userInfo?.gradeYearLevel}</p>}
-                {userInfo?.section && <p><strong>Section:</strong> {userInfo?.section}</p>}
+                {userInfo?.position && <p><strong>Position:</strong> {userInfo?.position}</p>}
+                {userInfo?.educationLevel && <p><strong>Education Level:</strong> {userInfo?.educationLevel}</p>}
                 {userInfo?.subjects && <p><strong>Subjects:</strong> {userInfo?.subjects}</p>}
             </div>
             <div className="col-span-1 sm:col-span-2 flex justify-between border-t pt-2">

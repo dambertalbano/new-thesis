@@ -3,6 +3,7 @@ import { validationResult } from 'express-validator'; // Import validationResult
 import jwt from "jsonwebtoken";
 import mongoose from 'mongoose';
 import cloudinary from "../config/cloudinary.js"; // Import cloudinary configuration
+import attendanceModel from "../models/attendanceModel.js"; // Import attendance model
 import studentModel from "../models/studentModel.js";
 import teacherModel from "../models/teacherModel.js";
 
@@ -130,6 +131,7 @@ const updateTeacherProfile = async (req, res) => {
 const getStudentsByTeacher = async (req, res) => {
     try {
         const { teacherId } = req.params;
+        const { date } = req.query;
 
         // Find the teacher by ID
         const teacher = await teacherModel.findById(teacherId);
@@ -138,22 +140,58 @@ const getStudentsByTeacher = async (req, res) => {
             return res.status(404).json({ success: false, message: "Teacher not found" });
         }
 
-        // Extract education level, grade year level, and section from the teacher's profile
-        const { educationLevel, gradeYearLevel, section } = teacher;
+        // Extract teaching assignments from the teacher object
+        const teachingAssignments = teacher.teachingAssignments;
 
-        // Build the query to find matching students
-        const query = {
-            $and: [ // Changed to $and
-                { educationLevel: { $in: educationLevel } },
-                { gradeYearLevel: { $in: gradeYearLevel } },
-                { section: { $in: section } }
-            ]
-        };
+        if (!teachingAssignments || teachingAssignments.length === 0) {
+            return res.status(400).json({ success: false, message: "No teaching assignments found for this teacher" });
+        }
 
-        // Find students matching the teacher's education level, grade year level, and section
+        // Build an array of queries based on teaching assignments
+        const assignmentQueries = teachingAssignments.map(assignment => ({
+            educationLevel: { $regex: new RegExp(`^${assignment.educationLevel.trim()}$`, 'i') },
+            gradeYearLevel: { $regex: new RegExp(`^${assignment.gradeYearLevel.trim()}$`, 'i') },
+            section: { $regex: new RegExp(`^${assignment.section.trim()}$`, 'i') }
+        }));
+
+        // Combine the queries using $or
+        let query = { $or: assignmentQueries };
+
+        // Find students matching the specified criteria
         const students = await studentModel.find(query).select(['-password', '-email']);
 
-        res.json({ success: true, students });
+        // Fetch attendance records for the students on the specified date
+        if (date) {
+            const startOfDay = new Date(date);
+            startOfDay.setHours(0, 0, 0, 0);
+
+            const endOfDay = new Date(date);
+            endOfDay.setHours(23, 59, 59, 999);
+
+            const attendanceRecords = await attendanceModel.find({
+                user: { $in: students.map(student => student._id) },
+                timestamp: {
+                    $gte: startOfDay,
+                    $lte: endOfDay
+                }
+            }).populate({
+                path: 'user',
+                select: 'firstName lastName middleName studentNumber position' // Select the fields you want
+            });
+
+            // Attach attendance records to the students
+            const studentsWithAttendance = students.map(student => {
+                const attendance = attendanceRecords.filter(record => record.user._id.toString() === student._id.toString());
+                return {
+                    ...student.toObject(),
+                    attendance
+                };
+            });
+
+            res.json({ success: true, students: studentsWithAttendance });
+        } else {
+            res.json({ success: true, students });
+        }
     } catch (error) {
         console.error("Error fetching students:", error);
         res.status(500).json({ success: false, message: error.message });
@@ -202,6 +240,37 @@ const updateTeacher = async (req, res) => {
 
         res.status(200).json({ success: true, message: 'Teacher profile updated successfully' });
     } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Teaching Assignments
+const updateTeacherTeachingAssignments = async (req, res) => {
+    try {
+        const { id } = req.teacher; // Get teacher ID from the authenticated teacher
+        const { teachingAssignments } = req.body; // Get the teaching assignments from the request body
+
+        const teacher = await teacherModel.findById(id);
+        if (!teacher) {
+            return res.status(404).json({ success: false, message: 'Teacher not found' });
+        }
+
+        // Generate _id for new teaching assignments
+        const updatedAssignments = teachingAssignments.map(assignment => ({
+            ...assignment,
+            _id: assignment._id || new mongoose.Types.ObjectId()
+        }));
+
+        teacher.teachingAssignments = updatedAssignments; // Update the teaching assignments
+
+        // Explicitly mark the teachingAssignments array as modified
+        teacher.markModified('teachingAssignments');
+
+        await teacher.save();
+
+        res.status(200).json({ success: true, message: 'Teaching assignments updated successfully', teachingAssignments: teacher.teachingAssignments });
+    } catch (error) {
+        console.error("Error updating teaching assignments:", error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
@@ -515,4 +584,83 @@ const editTeacherSubjects = async (req, res) => {
     }
 };
 
-export { addTeacherClassSchedule, addTeacherEducationLevel, addTeacherGradeYearLevel, addTeacherSection, addTeacherSubjects, editTeacherClassSchedule, editTeacherEducationLevel, editTeacherGradeYearLevel, editTeacherSubjects, getStudentsByTeacher, loginTeacher, logoutTeacher, removeTeacherClassSchedule, removeTeacherEducationLevel, removeTeacherGradeYearLevel, removeTeacherSection, removeTeacherSubjects, teacherList, teacherProfile, updateTeacher, updateTeacherProfile };
+// API to get attendance by date
+const getAttendanceByDate = async (req, res) => {
+    try {
+        const date = new Date(req.query.date);
+
+        if (isNaN(date.getTime())) {
+            return res.status(400).json({ message: 'Invalid date format.  Please use ISO format.' });
+        }
+
+        const startOfDay = new Date(date);
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const endOfDay = new Date(date);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        const attendanceRecords = await Attendance.find({
+            timestamp: {
+                $gte: startOfDay,
+                $lte: endOfDay,
+            },
+        }).populate({
+            path: 'user',
+            select: 'firstName lastName middleName studentNumber position' // Select the fields you want
+        });
+
+        res.status(200).json({ success: true, attendanceRecords });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const getAttendanceRecords = async (req, res) => {
+    try {
+        const { date, userType } = req.query;
+
+        if (!date) {
+            return res.status(400).json({ success: false, message: "Date is required" });
+        }
+
+        // Create a Date object from the provided date string
+        const isoDate = new Date(date);
+
+        // Check if the date is valid
+        if (isNaN(isoDate.getTime())) {
+            return res.status(400).json({ success: false, message: "Invalid date format. Please use ISO format." });
+        }
+
+        // Get the start and end of the day in ISO format
+        const startOfDay = new Date(isoDate);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(isoDate);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        let query = {
+            timestamp: {
+                $gte: startOfDay,
+                $lte: endOfDay
+            }
+        };
+
+        if (userType) {
+            query['userType'] = userType;
+        }
+
+        const attendanceRecords = await attendanceModel.find(query).populate({
+            path: 'user',
+            select: 'firstName lastName middleName studentNumber position' // Select the fields you want
+        });
+
+        res.status(200).json({ success: true, attendanceRecords });
+    } catch (error) {
+        console.error("Error fetching attendance records:", error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export {
+    addTeacherClassSchedule, addTeacherEducationLevel, addTeacherGradeYearLevel, addTeacherSection, addTeacherSubjects, editTeacherClassSchedule, editTeacherEducationLevel, editTeacherGradeYearLevel, editTeacherSubjects, getAttendanceByDate,
+    getAttendanceRecords, getStudentsByTeacher, loginTeacher, logoutTeacher, removeTeacherClassSchedule, removeTeacherEducationLevel, removeTeacherGradeYearLevel, removeTeacherSection, removeTeacherSubjects, teacherList, teacherProfile, updateTeacher, updateTeacherProfile, updateTeacherTeachingAssignments
+};

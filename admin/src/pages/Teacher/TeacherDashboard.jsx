@@ -1,9 +1,9 @@
 import axios from 'axios';
+import { Loader } from "lucide-react";
 import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { FiInfo } from 'react-icons/fi'; // Import FiInfo icon
 import { toast } from 'react-toastify';
 import { TeacherContext } from '../../context/TeacherContext';
-import { Loader } from "lucide-react";
 
 const TeacherDashboard = () => {
     const [teacherInfo, setTeacherInfo] = useState(null);

@@ -6,9 +6,7 @@ export const EmployeeContext = createContext();
 
 const EmployeeContextProvider = (props) => {
     const backendUrl = import.meta.env.VITE_BACKEND_URL;
-
     const [eToken, setEToken] = useState(() => localStorage.getItem('eToken') || null);
-    const [appointments, setAppointments] = useState([]);
     const [dashData, setDashData] = useState(null);
     const [profileData, setProfileData] = useState(null);
     const [employees, setEmployees] = useState([]);
@@ -45,28 +43,6 @@ const EmployeeContextProvider = (props) => {
         }
     }, [backendUrl, eToken, setDashData]);
 
-    // Getting Employee appointment data from Database using API
-    const getAppointments = useCallback(async () => {
-        if (!eToken) {
-            toast.error('Not authenticated. Please log in.');
-            return;
-        }
-        try {
-            const { data } = await axios.get(`${backendUrl}/api/employee/appointments`, {
-                headers: { Authorization: `Bearer ${eToken}` }
-            });
-
-            if (data.success) {
-                setAppointments(data.appointments.reverse());
-            } else {
-                toast.error(data.message);
-            }
-        } catch (error) {
-            console.error(error);
-            toast.error(error.response?.data?.message || 'Error fetching appointments.');
-        }
-    }, [backendUrl, eToken, setAppointments]);
-
     // Getting Employee profile data from Database using API
     const getProfileData = useCallback(async () => {
         if (!eToken) {
@@ -83,54 +59,6 @@ const EmployeeContextProvider = (props) => {
             toast.error(error.response?.data?.message || 'Error fetching profile data.');
         }
     }, [backendUrl, eToken, setProfileData]);
-
-    // Function to cancel employee appointment using API
-    const cancelAppointment = useCallback(async (appointmentId) => {
-        if (!eToken) {
-            toast.error('Not authenticated. Please log in.');
-            return;
-        }
-        try {
-            const { data } = await axios.post(`${backendUrl}/api/employee/cancel-appointment`, { appointmentId }, {
-                headers: { Authorization: `Bearer ${eToken}` }
-            });
-
-            if (data.success) {
-                toast.success(data.message);
-                getAppointments();
-                getDashData();
-            } else {
-                toast.error(data.message);
-            }
-        } catch (error) {
-            console.error(error);
-            toast.error(error.response?.data?.message || 'Error cancelling appointment.');
-        }
-    }, [backendUrl, eToken, getAppointments, getDashData]);
-
-    // Function to Mark appointment completed using API
-    const completeAppointment = useCallback(async (appointmentId) => {
-        if (!eToken) {
-            toast.error('Not authenticated. Please log in.');
-            return;
-        }
-        try {
-            const { data } = await axios.post(`${backendUrl}/api/employee/complete-appointment`, { appointmentId }, {
-                headers: { Authorization: `Bearer ${eToken}` }
-            });
-
-            if (data.success) {
-                toast.success(data.message);
-                getAppointments();
-                getDashData();
-            } else {
-                toast.error(data.message);
-            }
-        } catch (error) {
-            console.error(error);
-            toast.error(error.response?.data?.message || 'Error completing appointment.');
-        }
-    }, [backendUrl, eToken, getAppointments, getDashData]);
 
     const loginEmployee = useCallback(async (email, password) => {
         try {
@@ -197,22 +125,39 @@ const EmployeeContextProvider = (props) => {
         }
     }, [backendUrl, eToken, setEmployees]);
 
+    const getEmployeeAttendance = useCallback(async () => {
+        if (!eToken) {
+            toast.error('Not authenticated. Please log in.');
+            return null;
+        }
+        try {
+            const { data } = await axios.get(`${backendUrl}/api/employee/attendance`, {
+                headers: { Authorization: `Bearer ${eToken}` }
+            });
+            if (data.success) {
+                return data.attendance;
+            } else {
+                toast.error(data.message);
+                return null;
+            }
+        } catch (error) {
+            console.error('Error getting employee attendance:', error);
+            toast.error(error.response?.data?.message || 'Failed to get employee attendance.');
+            return null;
+        }
+    }, [backendUrl, eToken]);
+
     const value = {
         eToken,
         setEToken: updateEToken,
         backendUrl,
-        appointments,
-        getAppointments,
-        cancelAppointment,
-        completeAppointment,
-        dashData,
         getDashData,
-        profileData,
         getProfileData,
         loginEmployee,
         updateEmployeeProfile,
         employees,
         getEmployeesByEmployee,
+        getEmployeeAttendance, // Add getEmployeeAttendance to the context
     };
 
     return (

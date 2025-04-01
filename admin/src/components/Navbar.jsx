@@ -1,7 +1,7 @@
 import '@fontsource/inter';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import React, { useContext, useEffect, useState } from 'react';
+import React, { forwardRef, useContext, useEffect, useState } from 'react'; // Import forwardRef
 import { FiMenu, FiX } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { assets } from '../assets/assets';
@@ -10,7 +10,8 @@ import { EmployeeContext } from '../context/EmployeeContext';
 import { StudentContext } from '../context/StudentContext';
 import { TeacherContext } from '../context/TeacherContext';
 
-const Navbar = () => {
+// Use forwardRef to pass the ref to the DOM element
+const Navbar = forwardRef((props, ref) => {
     const { dToken, setDToken } = useContext(TeacherContext);
     const { aToken, setAToken } = useContext(AdminContext);
     const { sToken, setSToken } = useContext(StudentContext);
@@ -104,15 +105,15 @@ const Navbar = () => {
             ];
         } else if (dToken) {
             return [
-                { title: 'Attendance', path: '/attendance-teacher' },
+                { title: 'Attendance', path: '/att1' },
             ];
         } else if (sToken) {
             return [
-                { title: 'Attendance', path: '/attendance-student' },
+                { title: 'Attendance', path: '/att2' },
             ];
         } else if (eToken) {
             return [
-                { title: 'Attendance', path: '/attendance-employee' },
+                { title: 'Attendance', path: '/att3' },
             ];
         } else {
             return [];
@@ -186,7 +187,7 @@ const Navbar = () => {
     };
 
     return (
-        <nav className='fixed top-0 w-full z-50 flex justify-between items-center px-4 sm:px-10 py-3 bg-navbar font-sans'>
+        <nav className='fixed top-0 w-full z-50 flex justify-between items-center px-4 sm:px-10 py-3 bg-navbar font-sans' ref={ref}> {/* Attach the ref to the nav element */}
             <div className='flex items-center gap-2 text-xs sm:text-sm'>
                 <img
                     onClick={handleLogoClick}
@@ -388,7 +389,9 @@ const Navbar = () => {
             )}
         </nav>
     );
-};
+});
+
+Navbar.displayName = 'Navbar'; // Optional: Set a display name for debugging purposes
 
 const FlyoutLink = ({ title, FlyoutContent, path, onClick }) => {
     const navigate = useNavigate();

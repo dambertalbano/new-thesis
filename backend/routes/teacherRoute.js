@@ -1,6 +1,6 @@
 import express from 'express';
 import { body } from 'express-validator';
-import { addTeacherClassSchedule, addTeacherEducationLevel, addTeacherGradeYearLevel, addTeacherSection, addTeacherSubjects, editTeacherClassSchedule, editTeacherEducationLevel, editTeacherGradeYearLevel, editTeacherSubjects, getStudentsByTeacher, loginTeacher, logoutTeacher, removeTeacherClassSchedule, removeTeacherEducationLevel, removeTeacherGradeYearLevel, removeTeacherSection, removeTeacherSubjects, teacherProfile, updateTeacher, updateTeacherProfile } from '../controllers/teacherController.js'; // Import all controller functions
+import { addTeacherClassSchedule, addTeacherEducationLevel, addTeacherGradeYearLevel, addTeacherSection, addTeacherSubjects, editTeacherClassSchedule, editTeacherEducationLevel, editTeacherGradeYearLevel, editTeacherSubjects, getAttendanceRecords, getStudentsByTeacher, loginTeacher, logoutTeacher, removeTeacherClassSchedule, removeTeacherEducationLevel, removeTeacherGradeYearLevel, removeTeacherSection, removeTeacherSubjects, teacherProfile, updateTeacher, updateTeacherProfile } from '../controllers/teacherController.js'; // Import all controller functions
 import authTeacher from '../middleware/authTeacher.js'; // Import auth middleware
 import teacherModel from '../models/teacherModel.js';
 
@@ -18,7 +18,7 @@ router.put("/profile", authTeacher, [
     body('address').optional().trim().escape(),
     body('code').optional().trim().escape(),
 ], updateTeacherProfile);
-router.get("/students", authTeacher, getStudentsByTeacher);
+router.get("/students/:teacherId", authTeacher, getStudentsByTeacher);
 
 router.put('/:id', authTeacher, [  // Route for updating a teacher by ID
     body('firstName').optional().trim().escape(),
@@ -29,6 +29,45 @@ router.put('/:id', authTeacher, [  // Route for updating a teacher by ID
     body('address').optional().trim().escape(),
     body('code').optional().trim().escape(),
 ], updateTeacher);
+
+// Teaching Assignments Route
+router.put("/profile/teaching-assignments", authTeacher, async (req, res) => {
+    try {
+        const { teachingAssignments } = req.body;
+        // Log the teaching assignments received
+        console.log("Received teaching assignments:", teachingAssignments);
+
+        // Assuming the teacher's ID is available in req.teacher (set by authTeacher middleware)
+        const teacherId = req.teacher.id;
+        console.log("Teacher ID from authTeacher:", teacherId);
+
+        // Find the teacher by ID
+        const teacher = await teacherModel.findById(teacherId);
+
+        if (!teacher) {
+            console.log("Teacher not found with ID:", teacherId);
+            return res.status(404).json({ success: false, message: 'Teacher not found' });
+        }
+
+        // Update the teaching assignments
+        teacher.teachingAssignments = teachingAssignments;
+
+        // Log the teacher object before saving
+        console.log("Teacher object before saving:", teacher);
+
+        // Save the updated teacher profile
+        await teacher.save();
+
+        // Log after saving
+        console.log("Teacher object saved successfully");
+
+        // Send a success response
+        res.json({ success: true, message: 'Teaching assignments updated successfully' });
+    } catch (error) {
+        console.error('Error updating teaching assignments:', error);
+        res.status(500).json({ success: false, message: 'Failed to update teaching assignments', error: error.message });
+    }
+});
 
 // Class Schedule Routes
 router.post("/profile/class-schedule", authTeacher, addTeacherClassSchedule);
@@ -67,5 +106,8 @@ router.get('/code/:code', async (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 });
+
+// Attendance Route
+router.get("/attendance", authTeacher, getAttendanceRecords);
 
 export default router;

@@ -4,25 +4,33 @@ import { TeacherContext } from "../../context/TeacherContext";
 import gradeOptions from "../../utils/gradeOptions";
 
 // Extracted components for better code organization
-const ProfileHeader = ({ teacherInfo }) => (
-  <div className="bg-gradient-to-r from-customRed to-navbar p-8 text-white flex items-center">
-    {teacherInfo?.image && (
-      <img
-        src={teacherInfo.image}
-        alt="Teacher"
-        className="w-32 h-32 rounded-full border-2 border-white shadow-md"
-        onError={(e) => {
-          e.target.onerror = null;
-          e.target.src = "/images/default-image.png";
-        }}
-      />
-    )}
-    <div className="ml-6">
-      <h2 className="text-3xl font-bold">{teacherInfo.firstName} {teacherInfo.lastName}</h2>
-      <p className="text-lg opacity-80">{teacherInfo.email}</p>
+const ProfileHeader = ({ teacherInfo }) => {
+  // Function to format the name
+  const formatName = (teacher) => {
+    const middleInitial = teacher.middleName ? `${teacher.middleName.charAt(0)}.` : '';
+    return `${teacher.firstName}, ${middleInitial} ${teacher.lastName}`;
+  };
+
+  return (
+    <div className="bg-gradient-to-r from-customRed to-navbar p-8 text-white flex items-center">
+      {teacherInfo?.image && (
+        <img
+          src={teacherInfo.image}
+          alt="Teacher"
+          className="w-32 h-32 rounded-full border-2 border-white shadow-md"
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = teacherInfo.image; // Use user image as fallback
+          }}
+        />
+      )}
+      <div className="ml-6">
+        <h2 className="text-3xl font-bold">{teacherInfo ? formatName(teacherInfo) : 'Loading...'}</h2>
+        <p className="text-lg opacity-80">{teacherInfo.email}</p>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const ProfileForm = ({ formData, setFormData, onSubmit }) => (
   <form onSubmit={onSubmit} className="p-6">
@@ -198,6 +206,30 @@ const ItemListSection = ({
   </div>
 );
 
+// Component to display teaching assignments
+const TeachingAssignmentsList = ({ assignments, onRemove }) => (
+  <div>
+    <h4 className="text-lg font-medium mt-6 mb-2">Current Teaching Assignments</h4>
+    {assignments.length > 0 ? (
+      <ul className="list-disc list-inside">
+        {assignments.map((assignment, index) => (
+          <li key={index} className="mb-2">
+            {`${assignment.educationLevel} - Grade ${assignment.gradeYearLevel} - Section ${assignment.section}`}
+            <button
+              className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded ml-2"
+              onClick={() => onRemove(assignment)}
+            >
+              Remove
+            </button>
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <p>No teaching assignments added yet.</p>
+    )}
+  </div>
+);
+
 // Educational selections component
 const EducationalSelections = ({ 
   educationLevel, 
@@ -208,87 +240,109 @@ const EducationalSelections = ({
   setSection, 
   availableSections, 
   educationLevels,
-  onSubmit  // Add this prop
-}) => (
-  <div className="mt-4">
-    <div>
-      <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="educationLevel">
-        Education Level
-      </label>
-      <select
-        id="educationLevel"
-        className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-        value={Array.isArray(educationLevel) ? (educationLevel.length > 0 ? educationLevel[0] : '') : educationLevel}
-        onChange={(e) => {
-          setEducationLevel(e.target.value);
-          setGradeYearLevel('');
-          setSection('');
-        }}
-      >
-        <option value="">Select Education Level</option>
-        {educationLevels.map((level) => (
-          <option key={level} value={level}>{level}</option>
-        ))}
-      </select>
-    </div>
-    
-    {educationLevel && (
-      <div className="mt-4">
-        <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="gradeYearLevel">
-          Grade/Year Level
+  onSubmit,
+  teachingAssignments // Add teachingAssignments prop
+}) => {
+  // Function to check if an assignment is already selected
+  const isAssignmentSelected = (edLevel, grLevel, sec) => {
+    return teachingAssignments.some(
+      (assignment) =>
+        assignment.educationLevel === edLevel &&
+        assignment.gradeYearLevel === grLevel &&
+        assignment.section === sec
+    );
+  };
+
+  return (
+    <div className="mt-4">
+      <div>
+        <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="educationLevel">
+          Education Level
         </label>
         <select
-          id="gradeYearLevel"
+          id="educationLevel"
           className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-          value={Array.isArray(gradeYearLevel) ? (gradeYearLevel.length > 0 ? gradeYearLevel[0] : '') : gradeYearLevel}
+          value={Array.isArray(educationLevel) ? (educationLevel.length > 0 ? educationLevel[0] : '') : educationLevel}
           onChange={(e) => {
-            setGradeYearLevel(e.target.value);
+            setEducationLevel(e.target.value);
+            setGradeYearLevel('');
             setSection('');
           }}
         >
-          <option value="">Select Grade/Year Level</option>
-          {gradeOptions[educationLevel] &&
-            Object.keys(gradeOptions[educationLevel]).map((level) => (
-              <option key={level} value={level}>{level}</option>
-            ))}
+          <option value="">Select Education Level</option>
+          {educationLevels.map((level) => (
+            <option key={level} value={level}>{level}</option>
+          ))}
         </select>
       </div>
-    )}
+      
+      {educationLevel && (
+        <div className="mt-4">
+          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="gradeYearLevel">
+            Grade/Year Level
+          </label>
+          <select
+            id="gradeYearLevel"
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            value={Array.isArray(gradeYearLevel) ? (gradeYearLevel.length > 0 ? gradeYearLevel[0] : '') : gradeYearLevel}
+            onChange={(e) => {
+              setGradeYearLevel(e.target.value);
+              setSection('');
+            }}
+          >
+            <option value="">Select Grade/Year Level</option>
+            {gradeOptions[educationLevel] &&
+              Object.keys(gradeOptions[educationLevel]).map((level) => (
+                <option key={level} value={level}>{level}</option>
+              ))}
+          </select>
+        </div>
+      )}
 
-    {gradeYearLevel && (
-      <div className="mt-4">
-        <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="section">
-          Section
-        </label>
-        <select
-          id="section"
-          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-          value={Array.isArray(section) ? (section.length > 0 ? section[0] : '') : section}
-          onChange={(e) => setSection(e.target.value)}
-        >
-          <option value="">Select Section</option>
-          {availableSections &&
-            availableSections.map((sec, index) => (
-              <option key={index} value={sec}>{sec}</option>
-            ))}
-        </select>
-      </div>
-    )}
-    
-    {/* Add Submit Button */}
-    {section && (
-      <div className="mt-4">
-        <button
-          type="button"
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-          onClick={onSubmit}
-        >
-          Add Teaching Assignment
-        </button>
-      </div>
-    )}
-  </div>
-);
+      {gradeYearLevel && (
+        <div className="mt-4">
+          <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="section">
+            Section
+          </label>
+          <select
+            id="section"
+            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            value={Array.isArray(section) ? (section.length > 0 ? section[0] : '') : section}
+            onChange={(e) => setSection(e.target.value)}
+          >
+            <option value="">Select Section</option>
+            {availableSections &&
+              availableSections.map((sec, index) => (
+                <option
+                  key={index}
+                  value={sec}
+                  disabled={isAssignmentSelected(educationLevel, gradeYearLevel, sec)}
+                >
+                  {sec}
+                  {isAssignmentSelected(educationLevel, gradeYearLevel, sec)
+                    ? " (Already Assigned)"
+                    : ""}
+                </option>
+              ))}
+          </select>
+        </div>
+      )}
+      
+      {/* Add Submit Button */}
+      {section && (
+        <div className="mt-4">
+          <button
+            type="button"
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            onClick={onSubmit}
+          >
+            Add Teaching Assignment
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
 
 // Success card modal
 const SuccessModal = ({ isOpen, onClose }) => (
@@ -312,24 +366,17 @@ const TeacherProfile = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showSuccessCard, setShowSuccessCard] = useState(false);
-  const { 
-    dToken, 
-    backendUrl, 
-    updateTeacherByProfile, 
-    addTeacherClassSchedule, 
-    removeTeacherClassSchedule, 
-    editTeacherClassSchedule, 
-    addTeacherEducationLevel, 
-    removeTeacherEducationLevel, 
-    editTeacherEducationLevel, 
-    addTeacherGradeYearLevel, 
-    removeTeacherGradeYearLevel, 
-    editTeacherGradeYearLevel, 
-    addTeacherSection, 
-    removeTeacherSection, 
-    addTeacherSubjects, 
-    removeTeacherSubjects, 
-    editTeacherSubjects 
+  const {
+    dToken,
+    backendUrl,
+    updateTeacherByProfile,
+    addTeacherClassSchedule,
+    removeTeacherClassSchedule,
+    editTeacherClassSchedule,
+    addTeacherSubjects,
+    removeTeacherSubjects,
+    editTeacherSubjects,
+    updateTeacherTeachingAssignments // Add this line
   } = useContext(TeacherContext);
 
   // Consolidated form data state
@@ -345,37 +392,26 @@ const TeacherProfile = () => {
 
   // State variables for Class Schedule, Education Level, Grade/Year Level, Section, and Subjects
   const [classSchedule, setClassSchedule] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+
+  // New state to store teaching assignments
+  const [teachingAssignments, setTeachingAssignments] = useState([]);
+
   const [educationLevel, setEducationLevel] = useState('');
   const [gradeYearLevel, setGradeYearLevel] = useState('');
   const [section, setSection] = useState('');
-  const [subjects, setSubjects] = useState([]);
-
   const [availableSections, setAvailableSections] = useState([]);
   const educationLevels = useMemo(() => Object.keys(gradeOptions), []);
 
   // Input state
   const [newClassSchedule, setNewClassSchedule] = useState('');
-  const [newEducationLevel, setNewEducationLevel] = useState('');
   const [newSubjects, setNewSubjects] = useState('');
 
   // Editing state
   const [editingClassScheduleId, setEditingClassScheduleId] = useState(null);
   const [editedClassSchedule, setEditedClassSchedule] = useState('');
-  const [editingEducationLevelId, setEditingEducationLevelId] = useState(null);
-  const [editedEducationLevel, setEditedEducationLevel] = useState('');
   const [editingSubjectsId, setEditingSubjectsId] = useState(null);
   const [editedSubjects, setEditedSubjects] = useState('');
-
-  useEffect(() => {
-    if (educationLevels.length > 0) {
-      setEducationLevel(educationLevels[0]);
-    }
-  }, [educationLevels]);
-
-  // Memoize this calculation to avoid recalculating on every render
-  useEffect(() => {
-    setAvailableSections(gradeOptions[educationLevel]?.[gradeYearLevel] || []);
-  }, [educationLevel, gradeYearLevel]);
 
   const fetchTeacherProfile = useCallback(async () => {
     setLoading(true);
@@ -402,21 +438,10 @@ const TeacherProfile = () => {
 
         // Initialize other state variables
         setClassSchedule(profileData.classSchedule || []);
-        
-        // Handle potentially array values safely
-        setEducationLevel(Array.isArray(profileData.educationLevel) ? 
-          (profileData.educationLevel.length > 0 ? profileData.educationLevel[0] : '') : 
-          (profileData.educationLevel || ''));
-        
-        setGradeYearLevel(Array.isArray(profileData.gradeYearLevel) ? 
-          (profileData.gradeYearLevel.length > 0 ? profileData.gradeYearLevel[0] : '') : 
-          (profileData.gradeYearLevel || ''));
-        
-        setSection(Array.isArray(profileData.section) ? 
-          (profileData.section.length > 0 ? profileData.section[0] : '') : 
-          (profileData.section || ''));
-        
         setSubjects(profileData.subjects || []);
+
+        // Initialize teaching assignments from profile data
+        setTeachingAssignments(profileData.teachingAssignments || []);
       } else {
         setError(response.data.message);
       }
@@ -436,6 +461,17 @@ const TeacherProfile = () => {
       document.title = `${teacherInfo.firstName} ${teacherInfo.lastName}`;
     }
   }, [teacherInfo]);
+
+  useEffect(() => {
+    if (educationLevels.length > 0) {
+      setEducationLevel(educationLevels[0]);
+    }
+  }, [educationLevels]);
+
+  // Memoize this calculation to avoid recalculating on every render
+  useEffect(() => {
+    setAvailableSections(gradeOptions[educationLevel]?.[gradeYearLevel] || []);
+  }, [educationLevel, gradeYearLevel]);
 
   const onSubmitHandler = async (event) => {
     event.preventDefault();
@@ -513,49 +549,6 @@ const TeacherProfile = () => {
     }
   }, [editingClassScheduleId, editedClassSchedule, editTeacherClassSchedule, fetchTeacherProfile]);
 
-  const handleAddEducationLevel = useCallback(async () => {
-    if (newEducationLevel) {
-      try {
-        const success = await addTeacherEducationLevel(newEducationLevel);
-        if (success) {
-          setNewEducationLevel('');
-          fetchTeacherProfile();
-        }
-      } catch (error) {
-        console.error("Error adding education level:", error);
-        alert(error.response?.data?.message || error.message);
-      }
-    }
-  }, [newEducationLevel, addTeacherEducationLevel, fetchTeacherProfile]);
-
-  const handleRemoveEducationLevel = useCallback(async (id) => {
-    try {
-      const success = await removeTeacherEducationLevel(id);
-      if (success) {
-        fetchTeacherProfile();
-      }
-    } catch (error) {
-      console.error("Error removing education level:", error);
-      alert(error.response?.data?.message || error.message);
-    }
-  }, [removeTeacherEducationLevel, fetchTeacherProfile]);
-
-  const handleEditEducationLevel = useCallback(async () => {
-    if (editingEducationLevelId && editedEducationLevel) {
-      try {
-        const success = await editTeacherEducationLevel(editingEducationLevelId, editedEducationLevel);
-        if (success) {
-          setEditingEducationLevelId(null);
-          setEditedEducationLevel('');
-          fetchTeacherProfile();
-        }
-      } catch (error) {
-        console.error("Error editing education level:", error);
-        alert(error.response?.data?.message || error.message);
-      }
-    }
-  }, [editingEducationLevelId, editedEducationLevel, editTeacherEducationLevel, fetchTeacherProfile]);
-
   const handleAddSubjects = useCallback(async () => {
     if (newSubjects) {
       try {
@@ -604,78 +597,91 @@ const TeacherProfile = () => {
       return alert('Please select all fields: Education Level, Grade/Year Level, and Section');
     }
     
+    if (teachingAssignments.some(
+      (assignment) =>
+        assignment.educationLevel === educationLevel &&
+        assignment.gradeYearLevel === gradeYearLevel &&
+        assignment.section === section
+    )) {
+      return alert('This teaching assignment is already added.');
+    }
+
     try {
-      // First add the education level if needed
-      await addTeacherEducationLevel(educationLevel);
-      
-      // Then add the grade/year level
-      await addTeacherGradeYearLevel(gradeYearLevel);
-      
-      // Finally add the section
-      const success = await addTeacherSection(section);
-      
+      // Create a new teaching assignment object
+      const newAssignment = {
+        educationLevel,
+        gradeYearLevel,
+        section
+      };
+
+      // Update the teachingAssignments state
+      const updatedAssignments = [...teachingAssignments, newAssignment];
+      setTeachingAssignments(updatedAssignments);
+
+      // Update teaching assignments in the backend
+      const success = await updateTeacherTeachingAssignments(updatedAssignments);
       if (success) {
+        // Clear the selection fields
+        setEducationLevel('');
+        setGradeYearLevel('');
+        setSection('');
+
         alert('Teaching assignment added successfully!');
-        fetchTeacherProfile();
+      } else {
+        alert('Failed to update teaching assignments.');
       }
     } catch (error) {
       console.error("Error adding teaching assignment:", error);
       alert(error.response?.data?.message || error.message);
     }
-  }, [educationLevel, gradeYearLevel, section, addTeacherEducationLevel, addTeacherGradeYearLevel, addTeacherSection, fetchTeacherProfile]);
+  }, [educationLevel, gradeYearLevel, section, teachingAssignments, updateTeacherTeachingAssignments, setTeachingAssignments]);
+
+  const handleRemoveTeachingAssignment = useCallback(async (assignmentToRemove) => {
+    // Filter out the assignment to remove
+    const updatedAssignments = teachingAssignments.filter(
+      (assignment) =>
+        assignment.educationLevel !== assignmentToRemove.educationLevel ||
+        assignment.gradeYearLevel !== assignmentToRemove.gradeYearLevel ||
+        assignment.section !== assignmentToRemove.section
+    );
+    setTeachingAssignments(updatedAssignments);
+
+    try {
+      // Update teaching assignments in the backend
+      const success = await updateTeacherTeachingAssignments(updatedAssignments);
+      if (success) {
+        alert('Teaching assignment removed successfully!');
+      } else {
+        alert('Failed to update teaching assignments.');
+      }
+    } catch (error) {
+      console.error("Error removing teaching assignment:", error);
+      alert(error.response?.data?.message || error.message);
+    }
+  }, [teachingAssignments, updateTeacherTeachingAssignments, setTeachingAssignments]);
 
   if (loading) return <div className="h-screen flex items-center justify-center text-lg">Loading profile...</div>;
   if (error) return <div className="h-screen flex items-center justify-center text-red-500 text-lg">{error}</div>;
 
   return (
-    <div className="w-screen h-screen pt-[60px] mt-0 bg-gray-100 flex flex-col">
-      {/* Profile Header */}
-      <ProfileHeader teacherInfo={teacherInfo} />
+    <div className="w-screen h-screen mt-0 bg-gray-100 flex flex-col">
+  {/* Profile Header */}
+  <ProfileHeader teacherInfo={teacherInfo} />
 
-      {/* Profile Form */}
-      <ProfileForm 
-        formData={formData}
-        setFormData={setFormData}
-        onSubmit={onSubmitHandler}
-      />
+  {/* Profile Form */}
+  <ProfileForm
+    formData={formData}
+    setFormData={setFormData}
+    onSubmit={onSubmitHandler}
+  />
 
-      {/* Class Schedule Management */}
-      <ItemListSection
-        title="Class Schedule"
-        items={classSchedule}
-        newItemValue={newClassSchedule}
-        setNewItemValue={setNewClassSchedule}
-        handleAddItem={handleAddClassSchedule}
-        handleRemoveItem={handleRemoveClassSchedule}
-        handleEditItem={handleEditClassSchedule}
-        editingItemId={editingClassScheduleId}
-        setEditingItemId={setEditingClassScheduleId}
-        editedItemValue={editedClassSchedule}
-        setEditedItemValue={setEditedClassSchedule}
-      />
-
-      {/* Education Level Management */}
-      <div className="p-6">
-        <h3 className="text-xl font-semibold mb-4">Add Teacher Qualifications</h3>
-        <div className="flex items-center mb-2">
-          <input
-            type="text"
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline mr-2"
-            placeholder="New Education Level"
-            value={newEducationLevel}
-            onChange={(e) => setNewEducationLevel(e.target.value)}
-          />
-          <button
-            className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-            onClick={handleAddEducationLevel}
-          >
-            Add Education Level
-          </button>
-        </div>
-        
-        {/* Educational Selections */}
-        <h4 className="text-lg font-medium mt-6 mb-2">Select Teaching Assignments</h4>
-        <EducationalSelections 
+  {/* Grouped Sections in a 2-Column Layout */}
+  <div className="flex flex-col gap-4 m-5 max-w-screen-md mx-auto">
+    <div className="flex md:flex-row flex-col gap-4"> {/* Modified this line */}
+      {/* First Column */}
+      <div className="p-6 w-full md:w-1/2"> {/* Modified this line */}
+        <h3 className="text-xl font-semibold mb-4">Select Teaching Assignments</h3>
+        <EducationalSelections
           educationLevel={educationLevel}
           setEducationLevel={setEducationLevel}
           gradeYearLevel={gradeYearLevel}
@@ -684,31 +690,53 @@ const TeacherProfile = () => {
           setSection={setSection}
           availableSections={availableSections}
           educationLevels={educationLevels}
-          onSubmit={handleAddTeachingAssignment}  // Add this prop
+          onSubmit={handleAddTeachingAssignment}
+          teachingAssignments={teachingAssignments}
+        />
+        <TeachingAssignmentsList
+          assignments={teachingAssignments}
+          onRemove={handleRemoveTeachingAssignment}
         />
       </div>
 
-      {/* Subjects Management */}
-      <ItemListSection
-        title="Subjects"
-        items={subjects}
-        newItemValue={newSubjects}
-        setNewItemValue={setNewSubjects}
-        handleAddItem={handleAddSubjects}
-        handleRemoveItem={handleRemoveSubjects}
-        handleEditItem={handleEditSubjects}
-        editingItemId={editingSubjectsId}
-        setEditingItemId={setEditingSubjectsId}
-        editedItemValue={editedSubjects}
-        setEditedItemValue={setEditedSubjects}
-      />
-
-      {/* Success Modal */}
-      <SuccessModal 
-        isOpen={showSuccessCard} 
-        onClose={() => setShowSuccessCard(false)} 
-      />
+      {/* Second Column */}
+      <div className="p-6 w-full md:w-1/2"> {/* Modified this line */}
+        <ItemListSection
+          title="Class Schedule"
+          items={classSchedule}
+          newItemValue={newClassSchedule}
+          setNewItemValue={setNewClassSchedule}
+          handleAddItem={handleAddClassSchedule}
+          handleRemoveItem={handleRemoveClassSchedule}
+          handleEditItem={handleEditClassSchedule}
+          editingItemId={editingClassScheduleId}
+          setEditingItemId={setEditingClassScheduleId}
+          editedItemValue={editedClassSchedule}
+          setEditedItemValue={setEditedClassSchedule}
+        />
+        <ItemListSection
+          title="Subjects"
+          items={subjects}
+          newItemValue={newSubjects}
+          setNewItemValue={setNewSubjects}
+          handleAddItem={handleAddSubjects}
+          handleRemoveItem={handleRemoveSubjects}
+          handleEditItem={handleEditSubjects}
+          editingItemId={editingSubjectsId}
+          setEditingItemId={setEditingSubjectsId}
+          editedItemValue={editedSubjects}
+          setEditedItemValue={setEditedSubjects}
+        />
+      </div>
     </div>
+  </div>
+
+  {/* Success Modal */}
+  <SuccessModal
+    isOpen={showSuccessCard}
+    onClose={() => setShowSuccessCard(false)}
+  />
+</div>
   );
 };
 
