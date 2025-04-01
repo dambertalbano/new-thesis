@@ -11,6 +11,11 @@ const authTeacher = async (req, res, next) => {
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
+        // Check if the decoded token has the 'teacher' role
+        if (decoded.role !== 'teacher') {
+            return res.status(403).json({ success: false, message: 'Forbidden: Teacher role required' });
+        }
+
         const teacher = await teacherModel.findById(decoded.id).select('-password');
 
         if (!teacher) {

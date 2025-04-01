@@ -414,7 +414,48 @@ const deleteTeacher = async (req, res) => {
 
 // API to update Teacher details
 const updateTeacher = async (req, res) => {
-    updateUser(req, res, teacherModel, "Teacher");
+    const { id } = req.params;
+    const updates = req.body;
+
+    console.log("Updates received:", updates);
+    console.log("req.file:", req.file);
+
+    try {
+        // Handle the case where no new image is uploaded
+        if (!req.file) {
+            if (updates.image && typeof updates.image === 'object' && Object.keys(updates.image).length === 0) {
+                console.log("No new image uploaded, removing empty image field from updates");
+                delete updates.image;
+            }
+        } else {
+            // If a new image is provided, update the image
+            console.log("New image file detected");
+            try {
+                const imageUpload = await cloudinary.uploader.upload(req.file.path, { resource_type: "image" });
+                updates.image = imageUpload.secure_url;
+                console.log("Image uploaded to Cloudinary:", updates.image);
+            } catch (cloudinaryError) {
+                console.error("Cloudinary upload error:", cloudinaryError);
+                return res.status(500).json({ success: false, message: "Failed to upload image to Cloudinary" });
+            }
+        }
+
+        const updatedTeacher = await teacherModel.findByIdAndUpdate(id, updates, {
+            new: true,
+            runValidators: true
+        });
+
+        if (!updatedTeacher) {
+            return res.status(404).json({ success: false, message: 'Teacher not found' });
+        }
+
+        console.log("Teacher profile updated successfully:", updatedTeacher);
+        res.json({ success: true, message: 'Teacher updated successfully', teacher: updatedTeacher });
+
+    } catch (error) {
+        console.error('Error updating teacher profile:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
 };
 
 // API to delete Student
@@ -846,6 +887,43 @@ const editTeacherSubjects = async (req, res) => {
     }
 };
 
+// API to update Teacher profile
+const updateTeacherByProfile = async (req, res) => {
+    try {
+        const teacherId = req.params.id;
+        const updates = req.body;
+
+        // Find the teacher by ID
+        const teacher = await teacherModel.findById(teacherId);
+
+        if (!teacher) {
+            return res.status(404).json({ success: false, message: 'Teacher not found' });
+        }
+
+        // If a new image is provided, update the image
+        if (req.file) {
+            const imageUpload = await cloudinary.uploader.upload(req.file.path, { resource_type: "image" });
+            teacher.image = imageUpload.secure_url;
+        }
+
+        // Update the teacher's profile
+        teacher.firstName = updates.firstName || teacher.firstName;
+        teacher.middleName = updates.middleName || teacher.middleName;
+        teacher.lastName = updates.lastName || teacher.lastName;
+        teacher.email = updates.email || teacher.email;
+        teacher.number = updates.number || teacher.number;
+        teacher.address = updates.address || teacher.address;
+        teacher.code = updates.code || teacher.code;
+
+        // Save the updated teacher
+        await teacher.save();
+
+        res.status(200).json({ success: true, message: 'Teacher profile updated successfully' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 export {
     addEmployee, addStudent,
     addTeacher,
@@ -874,6 +952,7 @@ export {
     removeTeacherGradeYearLevel,
     removeTeacherSection,
     removeTeacherSubjects, updateEmployee, updateStudent,
-    updateTeacher
+    updateTeacher,
+    updateTeacherByProfile
 };
 

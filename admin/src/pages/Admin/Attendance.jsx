@@ -1,15 +1,46 @@
 import React from "react";
-import { AllUserAttendanceCardLink, AttendanceEmployeeCard, AttendanceStudentCard, AttendanceTeacherCard } from "../../components/UserCard";
+import {
+    AttendanceEmployeeCard,
+    AttendanceStudentCard,
+    AttendanceTeacherCard,
+} from "../../components/UserCard";
+import { motion } from "framer-motion";
+import { useEffect } from "react";
 
 function Attendance() {
+
+  useEffect(() => {
+    document.title = 'Attendance';
+    }, []);
+
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 p-6">
-            <AttendanceStudentCard />
-            <AttendanceTeacherCard />
-            <AttendanceEmployeeCard />
-            <AllUserAttendanceCardLink />
-        </div>
+      <div className="flex items-center justify-center min-h-screen w-full bg-gray-100 p-6">
+        
+          <motion.div
+            initial="initial"
+            animate="animate"
+            transition={{ staggerChildren: 0.1 }}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 place-items-center"
+          >
+            <motion.div variants={cardAnimation}>
+              <AttendanceStudentCard />
+            </motion.div>
+            <motion.div variants={cardAnimation}>
+              <AttendanceTeacherCard />
+            </motion.div>
+            <motion.div variants={cardAnimation}>
+              <AttendanceEmployeeCard />
+            </motion.div>
+          </motion.div>
+        
+      </div>
     );
 }
+
+const cardAnimation = {
+    initial: { scale: 0.5, y: 50, opacity: 0 },
+    animate: { scale: 1, y: 0, opacity: 1 },
+    transition: { type: "spring", mass: 3, stiffness: 400, damping: 50 },
+};
 
 export default Attendance;

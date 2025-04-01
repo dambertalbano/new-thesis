@@ -1,7 +1,6 @@
 import { Pencil, Search, Trash2 } from 'lucide-react';
 import React, { useContext, useEffect, useState } from 'react';
 import ReactPaginate from 'react-paginate';
-import { toast } from 'react-toastify';
 import { AdminContext } from '../../context/AdminContext';
 
 const TeachersList = () => {
@@ -64,15 +63,22 @@ const TeachersList = () => {
     });
 
     const handleSave = async () => {
-            try {
-                await updateTeacher(currentTeacher);
-                toast.success("Teacher updated successfully!");
-                setIsEditing(false);
-            } catch (error) {
-                console.error("Error updating teacher:", error);
-                toast.error("Failed to update teacher.");
-            }
-        };
+        try {
+            const updates = {
+                firstName: currentTeacher.firstName,
+                middleName: currentTeacher.middleName,
+                lastName: currentTeacher.lastName,
+                email: currentTeacher.email,
+                number: currentTeacher.number,
+                address: currentTeacher.address,
+            };
+
+            await updateTeacher(currentTeacher._id, updates, null);
+            setIsEditing(false);
+        } catch (error) {
+            console.error("Error updating teacher:", error);
+        }
+    };
 
     const pageCount = Math.ceil((filteredTeachers?.length || 0) / teachersPerPage);
     const offset = currentPage * teachersPerPage;
@@ -255,12 +261,12 @@ const TeachersList = () => {
                             />
                         </div>
                         <div className="mt-4">
-                            <label className="block text-sm font-medium text-gray-700">Subject</label>
+                            <label className="block text-sm font-medium text-gray-700">Address</label>
                             <input
                                 className="border w-full p-2 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                                name="subject"
-                                value={currentTeacher.subject || ''}
-                                onChange={(e) => setCurrentTeacher({ ...currentTeacher, subject: e.target.value })}
+                                name="address"
+                                value={currentTeacher.address || ''}
+                                onChange={(e) => setCurrentTeacher({ ...currentTeacher, address: e.target.value })}
                             />
                         </div>
                         <div className="mt-4 flex justify-end">

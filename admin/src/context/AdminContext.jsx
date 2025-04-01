@@ -177,12 +177,33 @@ const AdminContextProvider = (props) => {
         }
     }, [aToken, backendUrl, handleApiError]);
 
-    const updateTeacher = useCallback(async (teacher) => {
-        const url = `${backendUrl}/api/admin/teachers/${teacher._id}`;
+    const updateTeacher = useCallback(async (teacherId, updates, imageFile) => {
+        const url = `${backendUrl}/api/admin/teachers/${teacherId}`;
         console.log("Updating teacher at URL:", url);
+
         try {
-            const response = await axios.put(url, teacher, {
-                headers: { Authorization: `Bearer ${aToken}` },
+            const formData = new FormData();
+
+            // Append updates to formData
+            for (const key in updates) {
+                formData.append(key, updates[key]);
+            }
+
+            // Append imageFile to formData if it exists
+            if (imageFile) {
+                formData.append('image', imageFile);
+            }
+
+            // Inspect the FormData object
+            for (var pair of formData.entries()) {
+                console.log(pair[0]+ ', ' + pair[1]);
+            }
+
+            const response = await axios.put(url, formData, {
+                headers: {
+                    Authorization: `Bearer ${aToken}`,
+                    'Content-Type': 'multipart/form-data', // Important!
+                },
             });
 
             if (response.data.success) {

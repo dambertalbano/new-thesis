@@ -1,7 +1,5 @@
 import React, { useContext, useEffect } from 'react';
 import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import EditCard from './components/EditCard';
 import Navbar from './components/Navbar';
 import UserCard from './components/UserCard';
@@ -87,7 +85,7 @@ const App = () => {
 
     return (
         <>
-            <ToastContainer />
+            
             {(aToken || dToken || sToken || eToken) ? (
                 <div className='bg-[#F8F9FD]'>
                     <Navbar onLogout={handleLogout} />
