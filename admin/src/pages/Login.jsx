@@ -64,23 +64,28 @@ const Login = () => {
         
         try {
             const { endpoint, tokenSetter, localStorageKey, redirectTo } = roleConfig[state];
-            const { data } = await axios.post(backendUrl + endpoint, { email, password });
+            
+            // Fix the URL construction to avoid double slashes
+            const url = backendUrl.endsWith('/') 
+                ? backendUrl + endpoint.substring(1) // Remove leading slash from endpoint if backendUrl ends with slash
+                : backendUrl + endpoint; // Keep leading slash in endpoint if backendUrl doesn't end with slash
+            
+            const { data } = await axios.post(url, { email, password });
 
             if (data.success) {
                 tokenSetter(data.token);
                 localStorage.setItem(localStorageKey, data.token);
-                // No toast notification, just navigate
                 navigate(redirectTo);
             } else {
-                setError("Invalid email or password."); // Set error for invalid credentials
+                setError("Invalid email or password.");
             }
         } catch (error) {
             if (error.response?.status === 401) {
-                setError("Invalid email or password. Please try again."); // Unauthorized
+                setError("Invalid email or password. Please try again.");
             } else if (error.response?.status === 404) {
-                setError("User not found. Please check your email."); // Not found
+                setError("User not found. Please check your email.");
             } else {
-                setError("Login failed. Please try again later."); // Generic error
+                setError("Login failed. Please try again later.");
             }
             console.error(error);
         } finally {
