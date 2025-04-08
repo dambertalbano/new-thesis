@@ -1,8 +1,8 @@
+import ExcelJS from 'exceljs';
 import React, { useCallback, useContext, useEffect, useState } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { FaCalendarAlt, FaFileExcel, FaSearch, FaTimes } from 'react-icons/fa';
-import * as XLSX from 'xlsx';
 import { TeacherContext } from '../../context/TeacherContext';
 
 const TeacherAttendance = () => {
@@ -16,6 +16,8 @@ const TeacherAttendance = () => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
     const [teachingAssignments, setTeachingAssignments] = useState([]);
+    const [templateFile, setTemplateFile] = useState(null);
+    const [selectedAssignment, setSelectedAssignment] = useState(null);
 
     const fetchTeacherInfo = useCallback(async () => {
         setLoading(true);
@@ -48,24 +50,23 @@ const TeacherAttendance = () => {
     }, [dToken, backendUrl]);
 
     const fetchStudents = useCallback(async () => {
-        if (!teacherId) {
-            console.log('Missing teacherId:', { teacherId });
+        if (!selectedAssignment) {
+            console.log('Missing assignmentId:', { selectedAssignment });
             return;
         }
 
         setLoading(true);
         setError(null);
         try {
-            const formattedDate = currentDate.toISOString();
-            const url = `${backendUrl}/api/teacher/students/${teacherId}?date=${formattedDate}`;
-
-            console.log('Fetching students from URL:', url);
-
-            const response = await fetch(url, {
-                headers: {
-                    Authorization: `Bearer ${dToken}`,
-                },
-            });
+            const formattedDate = currentDate.toISOString().split('T')[0];
+            const response = await fetch(
+                `${backendUrl}/api/teacher/students/${selectedAssignment._id}?date=${formattedDate}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${dToken}`,
+                    },
+                }
+            );
 
             if (response.ok) {
                 const data = await response.json();
@@ -82,7 +83,7 @@ const TeacherAttendance = () => {
         } finally {
             setLoading(false);
         }
-    }, [teacherId, dToken, backendUrl, currentDate]);
+    }, [selectedAssignment, dToken, backendUrl, currentDate]);
 
     useEffect(() => {
         fetchTeacherInfo();
@@ -95,13 +96,46 @@ const TeacherAttendance = () => {
     }, [fetchStudents, teacherId, currentDate]);
 
     useEffect(() => {
+        if (selectedAssignment) {
+            fetchStudents();
+        }
+    }, [fetchStudents, selectedAssignment, currentDate]);
+
+    useEffect(() => {
         const lowerSearchTerm = searchTerm.toLowerCase();
-        const filtered = students.filter(student => {
-            const fullName = `${student.firstName} ${student.middleName || ''} ${student.lastName}`.toLowerCase();
-            return fullName.includes(lowerSearchTerm) || student.studentNumber.toLowerCase().includes(lowerSearchTerm);
-        });
+        const filtered = students
+            .filter(student => {
+                const fullName = `${student.firstName} ${student.middleName || ''} ${student.lastName}`.toLowerCase();
+                return (
+                    fullName.includes(lowerSearchTerm) ||
+                    student.studentNumber.toLowerCase().includes(lowerSearchTerm)
+                );
+            })
+            .sort((a, b) => {
+                const lastNameA = a.lastName.toLowerCase();
+                const lastNameB = b.lastName.toLowerCase();
+                if (lastNameA < lastNameB) return -1;
+                if (lastNameA > lastNameB) return 1;
+                return 0;
+            });
         setFilteredStudents(filtered);
     }, [students, searchTerm]);
+
+    useEffect(() => {
+        const selectedDate = currentDate.toISOString().split('T')[0];
+        const filtered = students.filter(student => {
+            const signInDate = student.signInTime
+                ? new Date(student.signInTime).toISOString().split('T')[0]
+                : null;
+            const signOutDate = student.signOutTime
+                ? new Date(student.signOutTime).toISOString().split('T')[0]
+                : null;
+
+            return signInDate === selectedDate || signOutDate === selectedDate;
+        });
+        console.log("Filtered Students by Attendance:", filtered); // Debugging log
+        setFilteredStudents(filtered);
+    }, [students, currentDate]);
 
     const handleSearch = (e) => {
         setSearchTerm(e.target.value);
@@ -116,15 +150,6 @@ const TeacherAttendance = () => {
         setIsCalendarOpen(prev => !prev);
     }, [setIsCalendarOpen]);
 
-    const formatDate = useCallback((dateString) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-        });
-    }, []);
-
     const formatTime = useCallback((dateString) => {
         const date = new Date(dateString);
         return date.toLocaleTimeString('en-US', {
@@ -133,41 +158,119 @@ const TeacherAttendance = () => {
         });
     }, []);
 
-    const generateExcel = () => {
-        const data = filteredStudents.map(student => ({
-            'Student Number': student.studentNumber,
-            'Name': `${student.firstName} ${student.lastName}`,
-            'Education Level': student.educationLevel,
-            'Grade Year Level': student.gradeYearLevel,
-            'Section': student.section,
-            'Sign-in Time': getSignInTime(student._id),
-            'Sign-out Time': getSignOutTime(student._id)
-        }));
-
-        const ws = XLSX.utils.json_to_sheet(data);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Students');
-        XLSX.writeFile(wb, 'students_attendance.xlsx');
+    const getSignInTime = (student) => {
+        return student.signInTime
+            ? formatTime(student.signInTime)
+            : "N/A";
     };
 
-    const getSignInTime = (studentId) => {
-        const student = students.find(s => s._id === studentId);
-        const signInRecord = student?.attendance?.find(record => record.eventType === 'sign-in');
-        return signInRecord ? formatTime(signInRecord?.timestamp) : 'N/A';
+    const getSignOutTime = (student) => {
+        return student.signOutTime
+            ? formatTime(student.signOutTime)
+            : "N/A";
     };
 
-    const getSignOutTime = (studentId) => {
-        const student = students.find(s => s._id === studentId);
-        const signOutRecord = student?.attendance?.find(record => record.eventType === 'sign-out');
-        return signOutRecord ? formatTime(signOutRecord?.timestamp) : 'N/A';
-    };
+    const generateExcel = async () => {
+        if (!templateFile) {
+            alert("Please upload the SF2 Excel template first.");
+            return;
+        }
+        if (!selectedAssignment) {
+            alert("Please select a teaching assignment before generating the report.");
+            return;
+        }
 
-    // Filter students who have either sign-in or sign-out time
-    const studentsWithAttendance = filteredStudents.filter(student => {
-        const hasSignIn = student.attendance?.some(record => record.eventType === 'sign-in');
-        const hasSignOut = student.attendance?.some(record => record.eventType === 'sign-out');
-        return hasSignIn || hasSignOut;
-    });
+        const reader = new FileReader();
+
+        reader.onload = async (e) => {
+            const workbook = new ExcelJS.Workbook();
+            await workbook.xlsx.load(e.target.result);
+
+            const worksheet = workbook.getWorksheet(1); // Assuming the first sheet
+
+            const month = currentDate.toLocaleString('default', { month: 'long' });
+            const gradeLevel = selectedAssignment.gradeYearLevel;
+            const section = selectedAssignment.section;
+
+            // Update report data
+            worksheet.getCell("AA6").value = `${month}`;
+            worksheet.getCell("W8").value = `${gradeLevel}`;
+            worksheet.getCell("AD8").value = `${section}`;
+
+            // Extract header dates from row 11
+            const headerDates = [];
+            worksheet.getRow(11).eachCell({ includeEmpty: true }, (cell, colNumber) => {
+                if (colNumber >= 4 && colNumber <= 29) {
+                    let raw = cell.value;
+                    if (typeof raw === "object" && raw !== null) {
+                        if (raw.richText) {
+                            raw = raw.richText.map((rt) => rt.text).join("");
+                        } else if (raw.result) {
+                            raw = raw.result;
+                        } else {
+                            raw = null;
+                        }
+                    }
+                    const parsed = raw !== null ? parseInt(String(raw).trim(), 10) : NaN;
+                    if (!isNaN(parsed)) {
+                        const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), parsed);
+                        headerDates[colNumber] = date.toISOString().split("T")[0];
+                    }
+                }
+            });
+
+            // Sort students alphabetically by last name
+            const sortedStudents = [...students].sort((a, b) => {
+                const lastNameA = a.lastName.toLowerCase();
+                const lastNameB = b.lastName.toLowerCase();
+                if (lastNameA < lastNameB) return -1;
+                if (lastNameA > lastNameB) return 1;
+                return 0;
+            });
+
+            // Add student data starting at row 14
+            const startRow = 14;
+            sortedStudents.forEach((student, index) => {
+                const row = worksheet.getRow(startRow + index);
+
+                // Write student name in column B
+                row.getCell(2).value = `${student.lastName}, ${student.firstName} ${student.middleName || ""}`;
+
+                // Mark attendance for all students
+                headerDates.forEach((headerDate, columnIndex) => {
+                    if (columnIndex >= 4) {
+                        const selectedDate = currentDate.toISOString().split("T")[0];
+                        const signInDate = student.signInTime
+                            ? new Date(student.signInTime).toISOString().split("T")[0]
+                            : null;
+                        const signOutDate = student.signOutTime
+                            ? new Date(student.signOutTime).toISOString().split("T")[0]
+                            : null;
+
+                        // Mark "P" if the student has a sign-in or sign-out time for the selected date
+                        if (headerDate === selectedDate && (headerDate === signInDate || headerDate === signOutDate)) {
+                            row.getCell(columnIndex).value = "P";
+                        } else if (headerDate === selectedDate) {
+                            row.getCell(columnIndex).value = "A";
+                        }
+                    }
+                });
+
+                row.commit();
+            });
+
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], {
+                type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = "Attendance_Report.xlsx";
+            link.click();
+        };
+
+        reader.readAsArrayBuffer(templateFile);
+    };
 
     if (loading) {
         return (
@@ -222,6 +325,36 @@ const TeacherAttendance = () => {
                     </div>
                 )}
             </div>
+            <div className="mb-6">
+                <label className="block text-lg font-semibold text-gray-700 mb-2">
+                    Select Teaching Assignment:
+                </label>
+                <select
+                    className="border border-gray-300 rounded-lg px-4 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={selectedAssignment?._id || ""}
+                    onChange={(e) => {
+                        e.preventDefault(); // Prevent the default form submission behavior
+                        const assignment = teachingAssignments.find(
+                            (ta) => ta._id === e.target.value
+                        );
+                        console.log("Selected Assignment:", assignment); // Debugging log
+                        setSelectedAssignment(assignment);
+                    }}
+                >
+                    <option value="">-- Select Assignment --</option>
+                    {teachingAssignments.map((assignment) => (
+                        <option key={assignment._id} value={assignment._id}>
+                            {`${assignment.educationLevel} - Grade ${assignment.gradeYearLevel} - Section ${assignment.section}`}
+                        </option>
+                    ))}
+                </select>
+            </div>
+            <input
+                type="file"
+                accept=".xlsx, .xls"
+                onChange={(e) => setTemplateFile(e.target.files[0])}
+                className="mb-2"
+            />
             <button
                 className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mb-4"
                 onClick={generateExcel}
@@ -229,7 +362,7 @@ const TeacherAttendance = () => {
                 <FaFileExcel className="inline mr-2" /> Generate Excel
             </button>
 
-            {studentsWithAttendance.length > 0 ? (
+            {filteredStudents.length > 0 ? (
                 <div className="overflow-x-auto">
                     <table className="min-w-full bg-white border border-gray-200">
                         <thead>
@@ -244,23 +377,17 @@ const TeacherAttendance = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {studentsWithAttendance.map(student => {
-                                const studentId = student._id;
-                                const signInTime = getSignInTime(studentId);
-                                const signOutTime = getSignOutTime(studentId);
-
-                                return (
-                                    <tr key={student._id} className="hover:bg-gray-50">
-                                        <td className="border px-4 py-2">{student.studentNumber}</td>
-                                        <td className="border px-4 py-2">{`${student.firstName} ${student.lastName}`}</td>
-                                        <td className="border px-4 py-2">{student.educationLevel}</td>
-                                        <td className="border px-4 py-2">{student.gradeYearLevel}</td>
-                                        <td className="border px-4 py-2">{student.section}</td>
-                                        <td className="border px-4 py-2">{signInTime}</td>
-                                        <td className="border px-4 py-2">{signOutTime}</td>
-                                    </tr>
-                                );
-                            })}
+                            {filteredStudents.map((student) => (
+                                <tr key={student._id} className="hover:bg-gray-50">
+                                    <td className="border px-4 py-2">{student.studentNumber}</td>
+                                    <td className="border px-4 py-2">{`${student.firstName} ${student.lastName}`}</td>
+                                    <td className="border px-4 py-2">{student.educationLevel}</td>
+                                    <td className="border px-4 py-2">{student.gradeYearLevel}</td>
+                                    <td className="border px-4 py-2">{student.section}</td>
+                                    <td className="border px-4 py-2">{getSignInTime(student)}</td>
+                                    <td className="border px-4 py-2">{getSignOutTime(student)}</td>
+                                </tr>
+                            ))}
                         </tbody>
                     </table>
                 </div>

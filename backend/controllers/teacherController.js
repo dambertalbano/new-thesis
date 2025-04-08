@@ -3,7 +3,7 @@ import { validationResult } from 'express-validator';
 import jwt from "jsonwebtoken";
 import mongoose from 'mongoose';
 import cloudinary from "../config/cloudinary.js";
-import attendanceModel from "../models/attendanceModel.js";
+import { default as Attendance, default as attendanceModel } from "../models/attendanceModel.js";
 import studentModel from "../models/studentModel.js";
 import teacherModel from "../models/teacherModel.js";
 
@@ -106,65 +106,57 @@ const updateTeacherProfile = async (req, res) => {
 };
 
 const getStudentsByTeacher = async (req, res) => {
-    try {
-        const { teacherId } = req.params;
-        const { date } = req.query;
+  try {
+    const { assignmentId } = req.params; // Extract assignmentId from the request parameters
+    console.log("Received Assignment ID:", assignmentId);
 
-        const teacher = await teacherModel.findById(teacherId);
-
-        if (!teacher) {
-            return res.status(404).json({ success: false, message: "Teacher not found" });
-        }
-
-        const teachingAssignments = teacher.teachingAssignments;
-
-        if (!teachingAssignments || teachingAssignments.length === 0) {
-            return res.status(400).json({ success: false, message: "No teaching assignments found for this teacher" });
-        }
-
-        const assignmentQueries = teachingAssignments.map(assignment => ({
-            educationLevel: { $regex: new RegExp(`^${assignment.educationLevel.trim()}$`, 'i') },
-            gradeYearLevel: { $regex: new RegExp(`^${assignment.gradeYearLevel.trim()}$`, 'i') },
-            section: { $regex: new RegExp(`^${assignment.section.trim()}$`, 'i') }
-        }));
-
-        let query = { $or: assignmentQueries };
-
-        const students = await studentModel.find(query).select(['-password', '-email']);
-
-        if (date) {
-            const startOfDay = new Date(date);
-            startOfDay.setHours(0, 0, 0, 0);
-
-            const endOfDay = new Date(date);
-            endOfDay.setHours(23, 59, 59, 999);
-
-            const attendanceRecords = await attendanceModel.find({
-                user: { $in: students.map(student => student._id) },
-                timestamp: {
-                    $gte: startOfDay,
-                    $lte: endOfDay
-                }
-            }).populate({
-                path: 'user',
-                select: 'firstName lastName middleName studentNumber position'
-            });
-
-            const studentsWithAttendance = students.map(student => {
-                const attendance = attendanceRecords.filter(record => record.user._id.toString() === student._id.toString());
-                return {
-                    ...student.toObject(),
-                    attendance
-                };
-            });
-
-            res.json({ success: true, students: studentsWithAttendance });
-        } else {
-            res.json({ success: true, students });
-        }
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+    if (!mongoose.Types.ObjectId.isValid(assignmentId)) {
+      return res.status(400).json({ success: false, message: "Invalid assignment ID" });
     }
+
+    const assignment = await teacherModel.findOne({
+      "teachingAssignments._id": assignmentId,
+    });
+
+    if (!assignment) {
+      console.log("Assignment not found for ID:", assignmentId);
+      return res.status(404).json({ success: false, message: "Assignment not found" });
+    }
+
+    const { educationLevel, gradeYearLevel, section } = assignment.teachingAssignments.find(
+      (ta) => ta._id.toString() === assignmentId
+    );
+
+    const students = await studentModel.find({
+      educationLevel,
+      gradeYearLevel,
+      section,
+    });
+
+    if (req.query.startDate && req.query.endDate) {
+      const start = new Date(req.query.startDate);
+      const end = new Date(req.query.endDate);
+
+      const attendanceRecords = await attendanceModel.find({
+        user: { $in: students.map((student) => student._id) },
+        timestamp: { $gte: start, $lte: end },
+      });
+
+      const studentsWithAttendance = students.map((student) => {
+        const attendance = attendanceRecords.filter(
+          (record) => record.user.toString() === student._id.toString()
+        );
+        return { ...student.toObject(), attendance };
+      });
+
+      return res.json({ success: true, students: studentsWithAttendance });
+    }
+
+    return res.json({ success: true, students });
+  } catch (error) {
+    console.error("Error in getStudentsByTeacher:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 const updateTeacher = async (req, res) => {
@@ -590,13 +582,48 @@ const getAttendanceRecords = async (req, res) => {
             select: 'firstName lastName middleName studentNumber position'
         });
 
+        console.log("Attendance Records:", attendanceRecords);
+
         res.status(200).json({ success: true, attendanceRecords });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
 };
 
+const getAttendance = async (req, res) => {
+  const { startDate, endDate, userType } = req.query;
+
+  try {
+    // Normalize startDate to the beginning of the day
+    const startOfDay = new Date(startDate);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    // Normalize endDate to the end of the day
+    const endOfDay = new Date(endDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    console.log("Querying attendance records from:", startOfDay, "to:", endOfDay);
+
+    const attendanceRecords = await Attendance.find({
+      userType,
+      timestamp: { $gte: startOfDay, $lte: endOfDay },
+    });
+
+    res.status(200).json({
+      success: true,
+      attendance: attendanceRecords,
+    });
+  } catch (error) {
+    console.error("Error fetching attendance records:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch attendance records.",
+    });
+  }
+};
+
 export {
-    addTeacherClassSchedule, addTeacherEducationLevel, addTeacherGradeYearLevel, addTeacherSection, addTeacherSubjects, editTeacherClassSchedule, editTeacherEducationLevel, editTeacherGradeYearLevel, editTeacherSubjects, getAttendanceByDate,
+    addTeacherClassSchedule, addTeacherEducationLevel, addTeacherGradeYearLevel, addTeacherSection, addTeacherSubjects, editTeacherClassSchedule, editTeacherEducationLevel, editTeacherGradeYearLevel, editTeacherSubjects, getAttendance, getAttendanceByDate,
     getAttendanceRecords, getStudentsByTeacher, loginTeacher, logoutTeacher, removeTeacherClassSchedule, removeTeacherEducationLevel, removeTeacherGradeYearLevel, removeTeacherSection, removeTeacherSubjects, teacherList, teacherProfile, updateTeacher, updateTeacherProfile, updateTeacherTeachingAssignments
 };
+

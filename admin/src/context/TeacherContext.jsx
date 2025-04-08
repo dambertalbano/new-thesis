@@ -26,7 +26,8 @@ export const TeacherContext = createContext({
     removeTeacherSubjects: () => Promise.resolve(false),
     editTeacherSubjects: () => Promise.resolve(false),
     updateTeacherTeachingAssignments: () => Promise.resolve(false),
-    fetchAttendanceRecords: () => Promise.resolve(null), // Changed to null
+    fetchAttendanceRecords: () => Promise.resolve(null),
+    fetchStudentsByTeachingAssignment: () => Promise.resolve(null), // Changed to null
 });
 
 const TeacherContextProvider = (props) => {
@@ -470,11 +471,32 @@ const TeacherContextProvider = (props) => {
         }
     }, [backendUrl, dToken]);
 
+    const fetchStudentsByTeachingAssignment = useCallback(async (teacherId, date = null) => {
+        try {
+            const params = date ? { date } : {}; // Include date in query params if provided
+            const response = await axios.get(`${backendUrl}/api/teacher/students/${teacherId}`, {
+                params,
+                headers: { Authorization: `Bearer ${dToken}` },
+            });
+
+            if (response.data.success) {
+                return response.data.students; // Return the list of students
+            } else {
+                toast.error(response.data.message || "Failed to fetch students.");
+                return []; // Return an empty array on failure
+            }
+        } catch (error) {
+            console.error("Error fetching students by teaching assignment:", error);
+            toast.error(error.response?.data?.message || "Failed to fetch students.");
+            return []; // Return an empty array on failure
+        }
+    }, [backendUrl, dToken]);
+
     const value = {
         dToken,
         setDToken: updateDToken,
         backendUrl,
-        dashData,
+        dashData, // Add the new function here
         fetchAttendanceRecords,
         setDashData,
         loginTeacher,
@@ -495,6 +517,7 @@ const TeacherContextProvider = (props) => {
         removeTeacherSubjects,
         editTeacherSubjects,
         updateTeacherTeachingAssignments,
+        fetchStudentsByTeachingAssignment,
     };
 
     return (

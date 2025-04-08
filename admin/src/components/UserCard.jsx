@@ -1,7 +1,7 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import React from 'react';
 import { FiUsers } from "react-icons/fi";
+import { useNavigate } from 'react-router-dom';
 
 const UserCard = ({ title, navigateTo }) => {
     const navigate = useNavigate();

@@ -1,6 +1,6 @@
 import express from 'express';
 import { body } from 'express-validator';
-import { addTeacherClassSchedule, addTeacherEducationLevel, addTeacherGradeYearLevel, addTeacherSection, addTeacherSubjects, editTeacherClassSchedule, editTeacherEducationLevel, editTeacherGradeYearLevel, editTeacherSubjects, getAttendanceRecords, getStudentsByTeacher, loginTeacher, logoutTeacher, removeTeacherClassSchedule, removeTeacherEducationLevel, removeTeacherGradeYearLevel, removeTeacherSection, removeTeacherSubjects, teacherProfile, updateTeacher, updateTeacherProfile } from '../controllers/teacherController.js'; // Import all controller functions
+import { addTeacherClassSchedule, addTeacherEducationLevel, addTeacherGradeYearLevel, addTeacherSection, addTeacherSubjects, editTeacherClassSchedule, editTeacherEducationLevel, editTeacherGradeYearLevel, editTeacherSubjects, getAttendance, getAttendanceRecords, getStudentsByTeacher, loginTeacher, logoutTeacher, removeTeacherClassSchedule, removeTeacherEducationLevel, removeTeacherGradeYearLevel, removeTeacherSection, removeTeacherSubjects, teacherProfile, updateTeacher, updateTeacherProfile } from '../controllers/teacherController.js'; // Import all controller functions
 import authTeacher from '../middleware/authTeacher.js'; // Import auth middleware
 import teacherModel from '../models/teacherModel.js';
 
@@ -18,7 +18,7 @@ router.put("/profile", authTeacher, [
     body('address').optional().trim().escape(),
     body('code').optional().trim().escape(),
 ], updateTeacherProfile);
-router.get("/students/:teacherId", authTeacher, getStudentsByTeacher);
+router.get("/students/:assignmentId", authTeacher, getStudentsByTeacher);
 
 router.put('/:id', authTeacher, [  // Route for updating a teacher by ID
     body('firstName').optional().trim().escape(),
@@ -109,5 +109,6 @@ router.get('/code/:code', async (req, res) => {
 
 // Attendance Route
 router.get("/attendance", authTeacher, getAttendanceRecords);
+router.get('/attendance-all', authTeacher,getAttendance);
 
 export default router;
