@@ -30,7 +30,7 @@ const teacherSchema = new mongoose.Schema({
     status: { type: String, default: "active" },
     educationLevel: {
         type: [String],
-        enum: ["Primary", "Secondary", "Tertiary"],
+        enum: ["Primary", "Secondary"],
         trim: true,
     },
     gradeYearLevel: { type: [String], trim: true },
@@ -38,7 +38,7 @@ const teacherSchema = new mongoose.Schema({
     teachingAssignments: [{  // Add teachingAssignments field
         educationLevel: {
             type: String,
-            enum: ["Primary", "Secondary", "Tertiary"],
+            enum: ["Primary", "Secondary"],
             trim: true,
         },
         gradeYearLevel: { type: String, trim: true },

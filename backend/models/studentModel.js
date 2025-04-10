@@ -23,7 +23,7 @@ const studentSchema = new mongoose.Schema(
     educationLevel: {
       type: String,
       required: true,
-      enum: ["Primary", "Secondary", "Tertiary"],
+      enum: ["Primary", "Secondary"],
       trim: true,
     },
     gradeYearLevel: { type: String, required: true, trim: true },
