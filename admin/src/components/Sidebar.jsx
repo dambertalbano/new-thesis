@@ -2,7 +2,6 @@ import React, { useContext } from 'react';
 import { NavLink } from 'react-router-dom';
 import { assets } from '../assets/assets';
 import { AdminContext } from '../context/AdminContext';
-import { EmployeeContext } from '../context/EmployeeContext';
 import { StudentContext } from '../context/StudentContext';
 import { TeacherContext } from '../context/TeacherContext';
 
@@ -10,7 +9,6 @@ const Sidebar = () => {
     const { aToken } = useContext(AdminContext);
     const { dToken } = useContext(TeacherContext);
     const { sToken } = useContext(StudentContext);
-    const { eToken } = useContext(EmployeeContext);
 
     return (
         <div className="min-h-screen border-r w-16 hover:w-64 transition-all duration-300 overflow-hidden bg-white group flex flex-col items-start">
@@ -38,14 +36,6 @@ const Sidebar = () => {
                 <ul className="mt-5 text-black w-full">
                     <SidebarItem to="/student-dashboard" icon={assets.home_icon} text="Dashboard" />
                     <SidebarItem to="/student-profile" icon={assets.profile_icon} text="Profile" />
-                </ul>
-            )}
-
-            {/* Employee Links */}
-            {eToken && (
-                <ul className="mt-5 text-black w-full">
-                    <SidebarItem to="/employee-dashboard" icon={assets.home_icon} text="Dashboard" />
-                    <SidebarItem to="/employee-profile" icon={assets.profile_icon} text="Profile" />
                 </ul>
             )}
         </div>

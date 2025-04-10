@@ -6,7 +6,6 @@ import { FiMenu, FiX } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { assets } from '../assets/assets';
 import { AdminContext } from '../context/AdminContext';
-import { EmployeeContext } from '../context/EmployeeContext';
 import { StudentContext } from '../context/StudentContext';
 import { TeacherContext } from '../context/TeacherContext';
 
@@ -15,7 +14,6 @@ const Navbar = forwardRef((props, ref) => {
     const { dToken, setDToken } = useContext(TeacherContext);
     const { aToken, setAToken } = useContext(AdminContext);
     const { sToken, setSToken } = useContext(StudentContext);
-    const { eToken, setEToken } = useContext(EmployeeContext);
     const navigate = useNavigate();
 
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -43,9 +41,7 @@ const Navbar = forwardRef((props, ref) => {
         setAToken(null);
         setDToken(null);
         setSToken(null);
-        setEToken(null);
         localStorage.removeItem('sToken');
-        localStorage.removeItem('eToken');
         localStorage.removeItem('dToken');
         localStorage.removeItem('aToken');
     };
@@ -55,8 +51,6 @@ const Navbar = forwardRef((props, ref) => {
             navigate('/teacher-profile');
         } else if (sToken) {
             navigate('/student-profile');
-        } else if (eToken) {
-            navigate('/employee-profile');
         }
         setIsUserDropdownOpen(false);
     };
@@ -72,8 +66,6 @@ const Navbar = forwardRef((props, ref) => {
             navigate('/teacher-dashboard');
         } else if (sToken) {
             navigate('/student-dashboard');
-        } else if (eToken) {
-            navigate('/employee-dashboard');
         }
     };
 
@@ -90,7 +82,6 @@ const Navbar = forwardRef((props, ref) => {
                     subMenu: [
                         { name: 'Student', path: '/student-list' },
                         { name: 'Teacher', path: '/teacher-list' },
-                        { name: 'Employee', path: '/employee-list' },
                     ],
                 },
                 {
@@ -99,7 +90,6 @@ const Navbar = forwardRef((props, ref) => {
                     subMenu: [
                         { name: 'Add Student', path: '/add-student' },
                         { name: 'Add Teacher', path: '/add-teacher' },
-                        { name: 'Add Employee', path: '/add-employee' },
                     ],
                 },
             ];
@@ -110,10 +100,6 @@ const Navbar = forwardRef((props, ref) => {
         } else if (sToken) {
             return [
                 { title: 'Attendance', path: '/att2' },
-            ];
-        } else if (eToken) {
-            return [
-                { title: 'Attendance', path: '/att3' },
             ];
         } else {
             return [];
@@ -127,9 +113,7 @@ const Navbar = forwardRef((props, ref) => {
             return 'Teacher';
         } else if (sToken) {
             return 'Student';
-        } else if (eToken) {
-            return 'Employee';
-        } else {
+        }  else {
             return 'User';
         }
     };
@@ -141,8 +125,6 @@ const Navbar = forwardRef((props, ref) => {
             return 'Sign Out Teacher';
         } else if (sToken) {
             return 'Sign Out Student';
-        } else if (eToken) {
-            return 'Sign Out Employee';
         } else {
             return 'Sign Out';
         }
@@ -157,7 +139,6 @@ const Navbar = forwardRef((props, ref) => {
         if (aToken) return '/attendance';
         if (dToken) return '/attendance-teacher';
         if (sToken) return '/attendance-student';
-        if (eToken) return '/attendance-employee';
         return '/attendance'; // Default if no token
     };
 
@@ -170,12 +151,11 @@ const Navbar = forwardRef((props, ref) => {
         if (aToken) return '/admin-dashboard';
         if (dToken) return '/teacher-dashboard';
         if (sToken) return '/student-dashboard';
-        if (eToken) return '/employee-dashboard';
         return '/'; // Default if no token
     };
 
     // Determine if the user is logged in
-    const isLoggedIn = aToken || dToken || sToken || eToken;
+    const isLoggedIn = aToken || dToken || sToken ;
 
     // Only navigate to the appropriate dashboard when clicking the logo
     const handleLogoClick = () => {
@@ -291,7 +271,7 @@ const Navbar = forwardRef((props, ref) => {
                                 );
                             })}
 
-                            {(dToken || sToken || eToken) && (
+                            {(dToken || sToken ) && (
                                 <button
                                     onClick={handleProfileNavigation}
                                     className='text-white py-2 text-left hover:text-customRed transition-colors duration-200 rounded-md px-3'
@@ -367,7 +347,7 @@ const Navbar = forwardRef((props, ref) => {
                                     transition={{ duration: 0.3, ease: 'easeOut' }}
                                     className="absolute right-0 mt-2 bg-white rounded-md shadow-lg w-40 py-2"
                                 >
-                                    {(dToken || sToken || eToken) && (
+                                    {(dToken || sToken ) && (
                                         <button
                                             onClick={handleProfileNavigation}
                                             className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 rounded-md transition-colors duration-200 ease-in-out hover:scale-105"

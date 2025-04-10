@@ -1,6 +1,6 @@
-import React, { useEffect } from "react";
-import { EmployeeCard, StudentCard, TeacherCard } from "../../components/UserCard";
 import { motion } from "framer-motion";
+import React, { useEffect } from "react";
+import { StudentCard, TeacherCard } from "../../components/UserCard";
 
 function AllUsers() {
   useEffect(() => {
@@ -13,7 +13,7 @@ function AllUsers() {
         initial="initial"
         animate="animate"
         transition={{ staggerChildren: 0.1 }}
-        className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 place-items-center"
+        className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-2 place-items-center"
       >
         <motion.div variants={cardAnimation}>
           <StudentCard />
@@ -23,9 +23,6 @@ function AllUsers() {
           <TeacherCard />
         </motion.div>
 
-        <motion.div variants={cardAnimation}>
-          <EmployeeCard />
-        </motion.div>
       </motion.div>
     </div>
   );

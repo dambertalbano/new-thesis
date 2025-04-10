@@ -37,19 +37,16 @@ const UserCard = ({ title, navigateTo }) => {
 // Attendance Cards
 export const AttendanceStudentCard = () => <UserCard title="Student Attendance" navigateTo="/attendance-student" />;
 export const AttendanceTeacherCard = () => <UserCard title="Teacher Attendance" navigateTo="/attendance-teacher" />;
-export const AttendanceEmployeeCard = () => <UserCard title="Employee Attendance" navigateTo="/attendance-employee" />;
 
 // Add Users
 export const AddStudentCard = () => <UserCard title="Add Student" navigateTo="/add-student" />;
 export const AddAdministratorCard = () => <UserCard title="Add Administrator" navigateTo="/add-administrator" />;
 export const AddTeachersCard = () => <UserCard title="Add Teacher" navigateTo="/add-teacher" />;
 export const AddUtilityCard = () => <UserCard title="Add Utility" navigateTo="/add-utility" />;
-export const AddEmployeeCard = () => <UserCard title="Add Employee" navigateTo="/add-employee" />;
 
 // All Users
 export const StudentCard = () => <UserCard title="List of Students" navigateTo="/student-list" />;
 export const TeacherCard = () => <UserCard title="List of Teachers" navigateTo="/teacher-list" />;
-export const EmployeeCard = () => <UserCard title="List of Employees" navigateTo="/employee-list" />;
 
 // Card Container Component with Responsive Grid and Centering
 const CardContainer = () => {
@@ -66,9 +63,6 @@ const CardContainer = () => {
                 </motion.div>
                 <motion.div variants={cardAnimation}>
                     <AttendanceTeacherCard />
-                </motion.div>
-                <motion.div variants={cardAnimation}>
-                    <AttendanceEmployeeCard />
                 </motion.div>
             </motion.div>
         </div>

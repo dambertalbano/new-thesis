@@ -1,6 +1,5 @@
 import express from 'express';
 import {
-    addEmployee,
     addStudent,
     addTeacher,
     addTeacherClassSchedule,
@@ -11,10 +10,8 @@ import {
     adminDashboard,
     adminSignIn,
     adminSignOut,
-    allEmployees,
     allStudents,
     allTeachers,
-    deleteEmployee,
     deleteStudent,
     deleteTeacher,
     editTeacherClassSchedule,
@@ -30,7 +27,6 @@ import {
     removeTeacherGradeYearLevel,
     removeTeacherSection,
     removeTeacherSubjects,
-    updateEmployee,
     updateStudent,
     updateTeacher
 } from '../controllers/adminController.js';
@@ -43,11 +39,9 @@ adminRouter.post("/login", loginAdmin);
 
 adminRouter.post("/add-student", authAdmin, upload.single('image'), addStudent);
 adminRouter.post("/add-teacher", authAdmin, upload.single('image'), addTeacher);
-adminRouter.post("/add-employee", authAdmin, upload.single('image'), addEmployee);
 
 adminRouter.get("/all-students", authAdmin, allStudents);
 adminRouter.get("/all-teachers", authAdmin, allTeachers);
-adminRouter.get("/all-employees", authAdmin, allEmployees);
 adminRouter.get("/dashboard", authAdmin, adminDashboard);
 adminRouter.get('/user/code/:code', authAdmin, getUserByCode);
 adminRouter.get("/student/code/:code", authAdmin, getStudentByCode);
@@ -56,11 +50,9 @@ adminRouter.get("/attendance", authAdmin, getAttendanceByDate);
 
 adminRouter.put("/teachers/:id", authAdmin, updateTeacher);
 adminRouter.put("/students/:id", authAdmin, updateStudent);
-adminRouter.put("/employees/:id", authAdmin, updateEmployee); // Add this line
 
 adminRouter.delete("/teachers/:id", authAdmin, deleteTeacher);
 adminRouter.delete("/students/:id", authAdmin, deleteStudent);
-adminRouter.delete("/employees/:id", authAdmin, deleteEmployee); // Add this line
 
 adminRouter.post("/sign-in/:code", authAdmin, adminSignIn);
 adminRouter.post("/sign-out/:code", authAdmin, adminSignOut);

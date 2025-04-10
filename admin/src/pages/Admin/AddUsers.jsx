@@ -1,7 +1,6 @@
-import React from 'react';
-import { useEffect } from 'react';
-import { AddEmployeeCard, AddStudentCard, AddTeachersCard } from '../../components/UserCard';
 import { motion } from 'framer-motion';
+import React, { useEffect } from 'react';
+import { AddStudentCard, AddTeachersCard } from '../../components/UserCard';
 
 const AddUsers = () => {
     useEffect(() => {
@@ -14,7 +13,7 @@ const AddUsers = () => {
                 initial="initial"
                 animate="animate"
                 transition={{ staggerChildren: 0.1 }}
-                className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 place-items-center"
+                className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-2 place-items-center"
             >
                 <motion.div variants={cardAnimation}>
                     <AddStudentCard />
@@ -24,9 +23,6 @@ const AddUsers = () => {
                     <AddTeachersCard />
                 </motion.div>
 
-                <motion.div variants={cardAnimation}>
-                    <AddEmployeeCard />
-                </motion.div>
             </motion.div>
         </div>
     );

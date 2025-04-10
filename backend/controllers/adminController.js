@@ -3,7 +3,6 @@ import { v2 as cloudinary } from "cloudinary";
 import jwt from "jsonwebtoken";
 import validator from "validator";
 import Attendance from "../models/attendanceModel.js";
-import employeeModel from "../models/employeeModel.js";
 import studentModel from "../models/studentModel.js";
 import teacherModel from "../models/teacherModel.js";
 
@@ -25,7 +24,6 @@ const loginAdmin = async (req, res) => {
 const findUserByCode = async (code) => {
     let user = await studentModel.findOne({ code });
     if (!user) user = await teacherModel.findOne({ code });
-    if (!user) user = await employeeModel.findOne({ code });
     return user;
 };
 
@@ -37,10 +35,6 @@ const adminSignIn = async (req, res) => {
         if (!user) {
             user = await teacherModel.findOne({ code });
             userType = 'Teacher';
-        }
-        if (!user) {
-            user = await employeeModel.findOne({ code });
-            userType = 'Employee';
         }
 
         if (!user) {
@@ -71,10 +65,6 @@ const adminSignOut = async (req, res) => {
         if (!user) {
             user = await teacherModel.findOne({ code });
             userType = 'Teacher';
-        }
-        if (!user) {
-            user = await employeeModel.findOne({ code });
-            userType = 'Employee';
         }
 
         if (!user) {
@@ -210,62 +200,6 @@ const addTeacher = async (req, res) => {
     }
 };
 
-const addEmployee = async (req, res) => {
-    try {
-        const { code, firstName, middleName, lastName, email, password, number, address, position } = req.body;
-        const imageFile = req.file;
-
-        if (!imageFile) {
-            return res.status(400).json({ success: false, message: "Image is required" });
-        }
-
-        if (!firstName || !lastName || !email || !password || !number || !code || !position) {
-            return res.status(400).json({ success: false, message: "Missing Details" });
-        }
-
-        if (!validator.isEmail(email)) {
-            return res.status(400).json({ success: false, message: "Please enter a valid email" });
-        }
-
-        if (password.length < 8) {
-            return res.status(400).json({ success: false, message: "Please enter a strong password" });
-        }
-
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-
-        const imageUpload = await cloudinary.uploader.upload(imageFile.path, { resource_type: "image" });
-        const imageUrl = imageUpload.secure_url;
-
-        const userData = {
-            code,
-            firstName,
-            middleName,
-            lastName,
-            email,
-            image: imageUrl,
-            password: hashedPassword,
-            number,
-            address,
-            position,
-            date: Date.now()
-        };
-
-        const newEmployee = new employeeModel(userData);
-        await newEmployee.save();
-        res.status(201).json({ success: true, message: `Employee Added` });
-    } catch (error) {
-        if (error.name === 'ValidationError') {
-            const errors = {};
-            for (const field in error.errors) {
-                errors[field] = error.errors[field].message;
-            }
-            return res.status(400).json({ success: false, message: 'Validation error', errors });
-        }
-        res.status(500).json({ success: false, message: error.message });
-    }
-};
-
 const getAllUsers = async (req, res, Model, userType) => {
     try {
         const users = await Model.find({}).select('-password');
@@ -283,9 +217,6 @@ const allTeachers = async (req, res) => {
     getAllUsers(req, res, teacherModel, 'teachers');
 };
 
-const allEmployees = async (req, res) => {
-    getAllUsers(req, res, employeeModel, 'employees');
-};
 
 const getStudentByCode = async (req, res) => {
     try {
@@ -307,12 +238,10 @@ const adminDashboard = async (req, res) => {
     try {
         const students = await studentModel.countDocuments({});
         const teachers = await teacherModel.countDocuments({});
-        const employees = await employeeModel.countDocuments({});
 
         const dashData = {
             students,
             teachers,
-            employees,
         };
 
         res.status(200).json({ success: true, dashData });
@@ -327,7 +256,6 @@ const getUserByCode = async (req, res) => {
     try {
         let user = await studentModel.findOne({ code });
         if (!user) user = await teacherModel.findOne({ code });
-        if (!user) user = await employeeModel.findOne({ code });
 
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
@@ -430,13 +358,6 @@ const updateStudent = async (req, res) => {
     updateUser(req, res, studentModel, "Student");
 };
 
-const deleteEmployee = async (req, res) => {
-    deleteUser(req, res, employeeModel, "Employee");
-};
-
-const updateEmployee = async (req, res) => {
-    updateUser(req, res, employeeModel, "Employee");
-};
 
 const getAttendanceByDate = async (req, res) => {
     try {
@@ -853,7 +774,7 @@ const updateTeacherByProfile = async (req, res) => {
 };
 
 export {
-    addEmployee, addStudent,
+    addStudent,
     addTeacher,
     addTeacherClassSchedule,
     addTeacherEducationLevel,
@@ -862,8 +783,8 @@ export {
     addTeacherSubjects,
     adminDashboard,
     adminSignIn,
-    adminSignOut, allEmployees, allStudents,
-    allTeachers, deleteEmployee,
+    adminSignOut, allStudents,
+    allTeachers,
     deleteStudent,
     deleteTeacher,
     editTeacherClassSchedule,
@@ -879,7 +800,7 @@ export {
     removeTeacherEducationLevel,
     removeTeacherGradeYearLevel,
     removeTeacherSection,
-    removeTeacherSubjects, updateEmployee, updateStudent,
+    removeTeacherSubjects, updateStudent,
     updateTeacher,
     updateTeacherByProfile
 };

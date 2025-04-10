@@ -9,7 +9,7 @@ const attendanceSchema = new mongoose.Schema({
     userType: {
         type: String,
         required: true,
-        enum: ['Student', 'Teacher', 'Employee'] // Possible user types
+        enum: ['Student', 'Teacher'] // Possible user types
     },
     eventType: {
         type: String,

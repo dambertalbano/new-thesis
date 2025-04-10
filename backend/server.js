@@ -4,7 +4,6 @@ import express from "express";
 import connectCloudinary from "./config/cloudinary.js";
 import connectDB from "./config/mongodb.js";
 import adminRouter from "./routes/adminRoute.js";
-import employeeRouter from './routes/employeeRoute.js';
 import studentRouter from "./routes/studentRoute.js";
 import teacherRouter from './routes/teacherRoute.js';
 
@@ -21,7 +20,6 @@ app.use(cors());
 app.use("/api/admin", adminRouter);
 app.use("/api/student", studentRouter);
 app.use("/api/teacher", teacherRouter);
-app.use("/api/employee", employeeRouter);
 
 app.get("/", (req, res) => {
     res.send("API Working");

@@ -1,8 +1,8 @@
+import { motion } from 'framer-motion';
 import React, { useContext, useEffect } from 'react';
+import { FiUsers } from "react-icons/fi"; // All cards use this icon
 import { useNavigate } from 'react-router-dom';
 import { AdminContext } from '../../context/AdminContext';
-import { motion } from 'framer-motion';
-import { FiUsers } from "react-icons/fi"; // All cards use this icon
 
 const Dashboard = () => {
   const { aToken, getDashData, dashData } = useContext(AdminContext);
@@ -26,9 +26,6 @@ const Dashboard = () => {
       case 'Teachers':
         navigate('/teacher-list');
         break;
-      case 'Employees':
-        navigate('/employee-list'); // Updated to handle Employees
-        break;
       default:
         break;
     }
@@ -41,12 +38,11 @@ const Dashboard = () => {
           initial="initial"
           animate="animate"
           transition={{ staggerChildren: 0.1 }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-6xl justify-center"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6 w-full max-w-6xl justify-center"
         >
           {[
             { name: "Students", count: dashData.students },
             { name: "Teachers", count: dashData.teachers },
-            { name: "Employees", count: dashData.employees }, 
           ].map((item) => (
             <Card
               key={item.name}

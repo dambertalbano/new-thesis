@@ -9,7 +9,6 @@ const AdminContextProvider = (props) => {
 
     const initialAToken = localStorage.getItem('aToken') || '';
     const [aToken, setAToken] = useState(initialAToken);
-    const [employees, setEmployees] = useState([]);
     const [students, setStudents] = useState([]);
     const [teachers, setTeachers] = useState([]);
     const [dashData, setDashData] = useState(null);
@@ -34,80 +33,6 @@ const AdminContextProvider = (props) => {
         console.error(message + ":", error);
         toast.error(message + ": " + error.message);
     }, []);
-
-    const getAllEmployees = useCallback(async () => { // Move getAllEmployees before its usage
-        try {
-            const { data } = await axios.get(`${backendUrl}/api/admin/all-employees`, {
-                headers: { Authorization: `Bearer ${aToken}` }
-            });
-            if (data.success) {
-                setEmployees(data.employees);
-            } else {
-                toast.error(data.message);
-            }
-        } catch (error) {
-            handleApiError(error, 'Error fetching all employees');
-        }
-    }, [aToken, backendUrl, handleApiError]);
-
-    const updateEmployee = useCallback(async (employee) => {
-        const url = `${backendUrl}/api/admin/employees/${employee._id}`;
-        try {
-            const response = await axios.put(url, employee, {
-                headers: { Authorization: `Bearer ${aToken}` },
-            });
-
-            if (response.data.success) {
-                getAllEmployees(); // Keep the getAllEmployees() call here
-                return true;
-            } else {
-                toast.error(response.data.message || "Failed to update employee");
-            }
-        } catch (error) {
-            handleApiError(error, 'Error updating employee');
-        }
-    }, [aToken, backendUrl, getAllEmployees, handleApiError]);
-
-    const deleteEmployee = useCallback(async (employeeId) => {
-        try {
-            const response = await axios.delete(`${backendUrl}/api/admin/employees/${employeeId}`, {
-                headers: { Authorization: `Bearer ${aToken}` },
-            });
-
-            if (response.data.success) {
-                toast.success("Employee deleted successfully");
-                getAllEmployees();
-                return true;
-            } else {
-                toast.error(response.data.message || "Failed to delete employee");
-            }
-        } catch (error) {
-            handleApiError(error, 'Error deleting employee');
-        }
-    }, [aToken, backendUrl, getAllEmployees, handleApiError]);
-
-    const addEmployee = useCallback(async (employeeData) => {
-        try {
-            const response = await axios.post(`${backendUrl}/api/admin/add-employee`, employeeData, {
-                headers: {
-                    Authorization: `Bearer ${aToken}`,
-                    'Content-Type': 'multipart/form-data'
-                },
-            });
-
-            if (response.data.success) {
-                toast.success("Employee added successfully");
-                getAllEmployees();
-                return true;
-            } else {
-                toast.error(response.data.message || "Failed to add employee");
-                return false;
-            }
-        } catch (error) {
-            handleApiError(error, 'Error adding employee');
-            return false;
-        }
-    }, [aToken, backendUrl, getAllEmployees, handleApiError]);
 
     const getUserByCode = useCallback(async (code) => {
         try {
@@ -696,12 +621,10 @@ const AdminContextProvider = (props) => {
     const value = {
         aToken,
         setAToken: updateAToken,
-        employees,
         students,
         teachers,
         getAllStudents,
         getAllTeachers,
-        getAllEmployees,
         updateTeacher,
         getUserByCode,
         deleteTeacher,
@@ -709,7 +632,6 @@ const AdminContextProvider = (props) => {
         deleteStudent,
         addStudent,
         addTeacher,
-        addEmployee,
         loginAdmin,
         getStudentByCode,
         adminSignIn,
@@ -731,8 +653,6 @@ const AdminContextProvider = (props) => {
         addTeacherSubjects,
         removeTeacherSubjects,
         editTeacherSubjects,
-        updateEmployee,
-        deleteEmployee,
     };
 
     return <AdminContext.Provider value={value}>{props.children}</AdminContext.Provider>;
