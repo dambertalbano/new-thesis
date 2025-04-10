@@ -26,7 +26,6 @@ import StudentProfile from './pages/Student/StudentProfile';
 import TeacherAttendance from './pages/Teacher/TeacherAttendance';
 import TeacherDashboard from './pages/Teacher/TeacherDashboard';
 import TeacherProfile from './pages/Teacher/TeacherProfile';
-import UserLogin from './pages/UserLogin';
 
 const App = () => {
     const { aToken } = useContext(AdminContext);
@@ -123,13 +122,12 @@ const App = () => {
                                 <Route path='/all-users' element={<AllUsers />} />
                                 <Route path='/add-users' element={<AddUsers />} />
                                 <Route path='/edit-users' element={<EditUser />} />
-                                <Route path='/login' element={<Login />} />
                             </Routes>
                         </div>
                     </div>
                 ) : (
                     <Routes>
-                        <Route path="/" element={<UserLogin />} />
+                        <Route path="/" element={<Login />} />
                     </Routes>
                 )}
             </div>
