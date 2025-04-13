@@ -19,7 +19,7 @@ export default function LandingPage() {
       style={{ backgroundImage: `url(${bgSolid})` }}>
         <img
           src="src/assets/admin_logo.svg" // Replace with actual logo path
-          alt="PUP Logo"
+          alt="SCC Logo"
           className="w-20 h-20 mb-4"
         />
         <h1 className="text-3xl font-bold text-white">Hi, Clareans!</h1>
@@ -39,7 +39,7 @@ export default function LandingPage() {
             href="#"
             className="text-blue-600 hover:underline ml-1"
           >
-            Terms of Use 
+            Terms of Use
           </a>
           and
           <a
