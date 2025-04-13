@@ -16,12 +16,8 @@ export default function LandingPage() {
 
       {/* Right Side - Login Section */}
       <div className="w-5/12 bg-gray-100 flex flex-col justify-center items-center p-10 shadow-lg"
-      style={{ backgroundImage: `url(${bgSolid})` }}>
-        <img
-          src="/src/assets/admin_logo.svg" // Replace with actual logo path
-          alt="SCC Logo"
-          className="w-20 h-20 mb-4"
-        />
+        style={{ backgroundImage: `url(${bgSolid})` }}>
+        <img src={admin_logo} alt="SCC Logo" className="w-20 h-20 mb-4" />
         <h1 className="text-3xl font-bold text-white">Hi, Clareans!</h1>
         <p className="text-white mb-6">Please click or tap your destination.</p>
 
