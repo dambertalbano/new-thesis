@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import admin_logo from "../assets/admin_logo.svg"; // Import the logo
 import bgSolid from '../assets/bg-solid.png';
 import scc_bg from "../assets/scc_bg.webp"; // Import the image
 
