@@ -18,7 +18,7 @@ export default function LandingPage() {
       <div className="w-5/12 bg-gray-100 flex flex-col justify-center items-center p-10 shadow-lg"
       style={{ backgroundImage: `url(${bgSolid})` }}>
         <img
-          src="src/assets/admin_logo.svg" // Replace with actual logo path
+          src="/src/assets/admin_logo.svg" // Replace with actual logo path
           alt="SCC Logo"
           className="w-20 h-20 mb-4"
         />
